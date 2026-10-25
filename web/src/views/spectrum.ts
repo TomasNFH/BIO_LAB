@@ -8,10 +8,14 @@ const UPDATE_MS = 100;
 const SMOOTHING = 0.35; // peso de cada espectro nuevo en el promedio
 
 // Series que se analizan: la referencia y, por rama, la salida del
-// amplificador (antes de los filtros), la salida y el ruido solo
-// (salida − referencia).
-export type Series = 'clean' | `${'amp' | 'out' | 'diff'}_${Branch}`;
-const SERIES: Series[] = ['clean', ...BRANCHES.flatMap((b) => [`amp_${b}`, `out_${b}`, `diff_${b}`] as Series[])];
+// amplificador (antes de los filtros), la del notch (después de los
+// filtros, antes del ADC), la salida del ADC y el ruido solo (salida −
+// referencia).
+export type Series = 'clean' | `${'amp' | 'notch' | 'out' | 'diff'}_${Branch}`;
+const SERIES: Series[] = [
+  'clean',
+  ...BRANCHES.flatMap((b) => [`amp_${b}`, `notch_${b}`, `out_${b}`, `diff_${b}`] as Series[]),
+];
 
 const HANN = (() => {
   const w = new Float64Array(N);
@@ -60,6 +64,7 @@ export class Analyzer {
       const out = x[`out_${b}`];
       const diff = x[`diff_${b}`];
       this.engine.copyLatest(x[`amp_${b}`], 'amp', b);
+      this.engine.copyLatest(x[`notch_${b}`], 'notch', b);
       this.engine.copyLatest(out, 'out', b);
       for (let i = 0; i < N; i++) diff[i] = out[i] - x.clean[i];
     }

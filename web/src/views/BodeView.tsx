@@ -19,11 +19,13 @@ const wrap = (deg: number) => deg - 360 * Math.ceil((deg - 180) / 360);
 // Diagrama de Bode de los filtros de una rama: módulo arriba y fase abajo.
 // Las líneas son la respuesta calculada de cada filtro y de todos en
 // cascada; los puntos, la respuesta medida sobre la señal real: el
-// espectro de la salida dividido por el de antes de los filtros.
+// espectro después de los filtros (antes del ADC) dividido por el de
+// antes de los filtros.
 export function BodeView({ engine, branch, settings }: { engine: BioEngine; branch: Branch; settings: ChainSettings }) {
   const { hp, lp, notch } = settings;
   const ref = useCanvasLoop((g, w, h) => {
-    const fs = engine.fs;
+    // Los filtros corren a la frecuencia analógica.
+    const fs = engine.analogFs;
     const hMag = Math.round(h * SPLIT);
     const magY = (db: number) => ((DB_MAX - db) / (DB_MAX - DB_MIN)) * (hMag - 8) + 4;
     const phaseY = (deg: number) => hMag + 10 + ((180 - deg) / 360) * (h - hMag - 24);
@@ -115,7 +117,7 @@ export function BodeView({ engine, branch, settings }: { engine: BioEngine; bran
     const an = getAnalyzer(engine);
     an.update();
     const pAmp = an.avg[`amp_${branch}`];
-    const pOut = an.avg[`out_${branch}`];
+    const pOut = an.avg[`notch_${branch}`];
     g.fillStyle = COLORS.measured;
     forEachColumn(AXIS, w, an.df, pOut.length, (x, k0, k1) => {
       let pi = 0;

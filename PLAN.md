@@ -32,7 +32,7 @@ El objetivo es aprender, no hacer un equipo clínico.
 | Proyecto | Vite + React + TypeScript | Igual que Tone Lab |
 | Motor | Clase `BioEngine` en TS puro, procesa bloques de muestras | Las señales son lentas (fs = 1 kHz); no hace falta Web Audio |
 | Tiempo real | Bucle con `requestAnimationFrame`: en cada cuadro genera y procesa las muestras del tiempo transcurrido | Simple, suave a 60 fps, mismo código para tiempo real y exportación |
-| Simulación analógica | La cadena "analógica" corre a fs interna alta (p. ej. 10 kHz) y el ADC la remuestrea | Así el ADC y el aliasing son honestos |
+| Simulación analógica | La parte "analógica" (fuente, ruido, amplificador, filtros) corre a 4 kHz; el ADC la muestrea a 100–1000 Hz y las vistas leen búferes a 1 kHz (promedio de 4 muestras analógicas) | Así el ADC y el aliasing son honestos, y los filtros se parecen a los analógicos hasta 500 Hz |
 | Filtros | Biquads / primer orden obtenidos por transformada bilineal desde los valores R y C | La respuesta dibujada sale de la misma función de transferencia |
 | Gráficas | Canvas 2D | Las librerías de gráficos son lentas a 60 fps |
 | Estado | Estado de React para las perillas; empujan valores al motor | Igual que Tone Lab |

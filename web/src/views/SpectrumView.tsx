@@ -43,6 +43,27 @@ export function SpectrumView({
       g.fillRect(x0, 0, Math.max(2, x1 - x0), h);
     }
 
+    // Por encima de Nyquist el ADC no tiene información: lo que se ve son
+    // copias que deja el retenedor.
+    const adc = engine.chains[branch].adc;
+    if (adc.on && adc.fs / 2 < AXIS.fMax) {
+      const xn = AXIS.toX(adc.fs / 2, w);
+      g.fillStyle = COLORS.aboveNyquist;
+      g.fillRect(xn, 0, w - xn, h);
+      g.strokeStyle = COLORS.warning;
+      g.setLineDash([4, 4]);
+      g.beginPath();
+      g.moveTo(Math.round(xn) + 0.5, 0);
+      g.lineTo(Math.round(xn) + 0.5, h);
+      g.stroke();
+      g.setLineDash([]);
+      g.font = '600 11px system-ui, sans-serif';
+      g.fillStyle = COLORS.warning;
+      g.textAlign = xn > w - 80 ? 'right' : 'left';
+      g.fillText(`Nyquist ${adc.fs / 2} Hz`, xn + (xn > w - 80 ? -5 : 5), 26);
+      g.textAlign = 'left';
+    }
+
     drawFreqGrid(g, AXIS, w, 0, h);
     for (let db = DB_MIN + 10; db <= DB_MAX; db += 10) {
       const y = Math.round(dbToY(db, h)) + 0.5;

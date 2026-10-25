@@ -3,6 +3,7 @@ import { BioEngine, type EngineState } from './engine/BioEngine';
 import { BRANCHES, DEFAULT_BRANCHES, type Branch, type ChainSettings } from './engine/chain';
 import { DEFAULT_ECG, type EcgSettings } from './engine/ecg';
 import { DEFAULT_NOISE, noiseBand, type NoiseId, type NoiseSettings } from './engine/noise';
+import { AdcPanel } from './components/AdcPanel';
 import { AmpPanel } from './components/AmpPanel';
 import { BranchBar } from './components/BranchBar';
 import { ChainStrip } from './components/ChainStrip';
@@ -99,7 +100,7 @@ export function App() {
       <header className="header">
         <Logo />
         <h1>Bio Lab</h1>
-        <span className="phase">Etapa 5: pasa banda, notch, segundo orden y ramas A/B</span>
+        <span className="phase">Etapa 6: conversor A/D</span>
       </header>
 
       <ChainStrip />
@@ -156,6 +157,14 @@ export function App() {
                 swatch={branch === 'a' ? 'branch-b' : 'branch-a'}
                 label={`Rama ${other}`}
               />
+              <label className="check">
+                <input
+                  type="checkbox"
+                  checked={monitor.samples}
+                  onChange={(e) => editMonitor({ samples: e.target.checked })}
+                />
+                Marcar muestras del ADC
+              </label>
             </div>
             <MetricsTable engine={eng} />
             <p className="muted small">
@@ -219,7 +228,10 @@ export function App() {
                   Amplitud de cada frecuencia en los últimos 8 s, en dB respecto de 1 mV: una
                   senoidal de 1 mV marca 0 dB y una de 0,1 mV, −20 dB. El ECG ocupa de 0,5 a 40 Hz.
                   El ruido solo es la salida menos el ECG limpio: incluye también la deformación
-                  y el retardo de los filtros.
+                  y el retardo de los filtros. La salida es la del ADC: por encima de su
+                  frecuencia de Nyquist (zona sombreada) no hay información nueva, sólo copias
+                  que deja el retenedor, y lo que había allí antes del ADC aparece doblado por
+                  debajo.
                 </p>
               </>
             )}
@@ -245,8 +257,8 @@ export function App() {
                 </div>
                 <p className="muted small">
                   Módulo (arriba) y fase (abajo) de los filtros, calculados desde sus componentes.
-                  Los puntos son la respuesta medida sobre la señal: el espectro de la salida
-                  dividido por el de antes de los filtros. Si coinciden con la curva, los filtros
+                  Los puntos son la respuesta medida sobre la señal: el espectro después de los
+                  filtros (antes del ADC) dividido por el de antes de los filtros. Si coinciden con la curva, los filtros
                   hacen lo que dice la teoría. Cada fc está donde la curva cruza −3 dB. Por debajo
                   de 1 Hz los puntos son menos fiables: 8 s de señal tienen pocos ciclos y la deriva
                   fuerte de la respiración se derrama a las frecuencias vecinas.
@@ -350,6 +362,8 @@ export function App() {
           <FilterPanel kind="lp" settings={chain.lp} onChange={(lp) => editChain({ lp })} />
 
           <NotchPanel settings={chain.notch} onChange={(notch) => editChain({ notch })} />
+
+          <AdcPanel engine={eng} branch={branch} chain={chain} onChange={(adc) => editChain({ adc })} />
         </div>
       </div>
     </div>

@@ -15,7 +15,8 @@ const ROWS: { point: TestPoint; label: string }[] = [
   { point: 'amp', label: 'Amplificador (referido a la entrada)' },
   { point: 'hp', label: 'Tras el pasa altos' },
   { point: 'lp', label: 'Tras el pasa bajos' },
-  { point: 'out', label: 'Tras el notch (salida)' },
+  { point: 'notch', label: 'Tras el notch' },
+  { point: 'out', label: 'ADC (salida)' },
 ];
 
 const SECONDS = 5;

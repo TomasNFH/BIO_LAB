@@ -75,12 +75,14 @@ export class NoiseSource {
   private wanderScale: number;
   private motionEvents: MotionEvent[] = [];
   common = 0; // modo común de la última muestra, mV
+  private whiteScale: number;
 
   constructor(
     private fs: number,
     settings: NoiseSettings = DEFAULT_NOISE,
   ) {
     this.settings = structuredClone(settings);
+    this.whiteScale = Math.sqrt(fs / 1000);
     // EMG: ruido blanco por un pasa banda ancho centrado en ~80 Hz.
     const emg = () => Biquad.bandpass(80, 0.5, fs);
     this.emgFilter = emg();
@@ -139,8 +141,10 @@ export class NoiseSource {
     const envelope = this.emgEnvelope.process(target);
     if (s.emg.on) v += s.emg.level * emg * envelope;
 
-    // Ruido blanco: térmico de los electrodos y del amplificador.
-    if (s.white.on) v += s.white.level * r.gauss();
+    // Ruido blanco: térmico de los electrodos y del amplificador. Ocupa
+    // toda la banda hasta fs/2; se escala para que el nivel de la perilla
+    // sea el que hay entre 0 y 500 Hz, la banda que muestran las vistas.
+    if (s.white.on) v += s.white.level * this.whiteScale * r.gauss();
 
     // Offset de continua por la diferencia de potencial de media celda
     // entre los dos electrodos.

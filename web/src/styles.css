@@ -152,6 +152,7 @@ select { min-width: 220px; flex: 1; }
 .readouts dt { font-size: 0.72rem; color: var(--muted); }
 .readouts dd { margin: 2px 0 0; font-size: 1rem; font-variant-numeric: tabular-nums; }
 .readouts dd.bad { color: #f26b5b; font-weight: 600; }
+.readouts dd.warn { color: #f0a848; }
 .muted-inline { color: var(--muted); font-size: 0.85rem; }
 .sat-warning { color: #f26b5b; font-size: 0.85rem; margin: 10px 0 0; line-height: 1.45; }
 

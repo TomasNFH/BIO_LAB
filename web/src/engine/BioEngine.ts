@@ -2,7 +2,12 @@ import { BRANCHES, Chain, DEFAULT_BRANCHES, type Branch, type ChainSettings } fr
 import { DEFAULT_ECG, EcgSource, type EcgSettings } from './ecg';
 import { DEFAULT_NOISE, NoiseSource, type NoiseSettings } from './noise';
 
-export const FS = 1000; // frecuencia de muestreo, Hz
+export const FS = 1000; // frecuencia de las vistas y los búferes, Hz
+// La parte analógica (fuente, ruido, amplificador y filtros) corre más
+// rápido, para que haya contenido por encima de lo que el ADC puede
+// muestrear y el aliasing sea real.
+export const FA = 4000;
+const OVERSAMPLE = FA / FS;
 const BUFFER_SECONDS = 30;
 // Si la pestaña estuvo oculta, no recuperar más que esto de golpe.
 const MAX_STEP = 0.1;
@@ -12,9 +17,9 @@ export type EngineState = { playing: boolean };
 // Puntos de prueba, en orden. Los dos primeros son comunes a las dos ramas;
 // el resto existe una vez por rama. Todos en mV referidos a la entrada.
 export type SharedPoint = 'clean' | 'input';
-export type BranchPoint = 'amp' | 'hp' | 'lp' | 'out';
+export type BranchPoint = 'amp' | 'hp' | 'lp' | 'notch' | 'out';
 export type TestPoint = SharedPoint | BranchPoint;
-const BRANCH_POINTS: BranchPoint[] = ['amp', 'hp', 'lp', 'out'];
+const BRANCH_POINTS: BranchPoint[] = ['amp', 'hp', 'lp', 'notch', 'out'];
 const isShared = (p: TestPoint): p is SharedPoint => p === 'clean' || p === 'input';
 
 const makeBuffer = () => new Float32Array(FS * BUFFER_SECONDS);
@@ -27,9 +32,13 @@ const makeBuffer = () => new Float32Array(FS * BUFFER_SECONDS);
 //
 // Guarda la señal en cada punto de prueba: la referencia limpia (el ECG
 // solo), la entrada diferencial y, por rama, la salida del amplificador,
-// del pasa altos, del pasa bajos y del notch (la salida). Como el
+// del pasa altos, del pasa bajos, del notch y del ADC (la salida). Como el
 // laboratorio conoce la referencia, puede medir cuánto se aleja la salida
 // de ella.
+//
+// La parte analógica corre a FA = 4 kHz; cada muestra de los búferes (a
+// 1 kHz) es el promedio de 4 muestras analógicas, salvo la del ADC, que es
+// el valor retenido.
 //
 // La salida se guarda referida a la entrada: la tensión del amplificador
 // dividida por su ganancia, en mV, como la muestra un monitor de ECG. Así
@@ -37,11 +46,12 @@ const makeBuffer = () => new Float32Array(FS * BUFFER_SECONDS);
 // un recorte.
 export class BioEngine {
   readonly fs = FS;
+  readonly analogFs = FA;
   readonly ecg = new EcgSource(DEFAULT_ECG);
-  readonly noise = new NoiseSource(FS, DEFAULT_NOISE);
+  readonly noise = new NoiseSource(FA, DEFAULT_NOISE);
   readonly chains: Record<Branch, Chain> = {
-    a: new Chain(FS, DEFAULT_BRANCHES.a),
-    b: new Chain(FS, DEFAULT_BRANCHES.b),
+    a: new Chain(FA, DEFAULT_BRANCHES.a),
+    b: new Chain(FA, DEFAULT_BRANCHES.b),
   };
   private shared: Record<SharedPoint, Float32Array> = { clean: makeBuffer(), input: makeBuffer() };
   private taps = Object.fromEntries(
@@ -80,6 +90,11 @@ export class BioEngine {
   sampleAt(i: number, branch: Branch = 'a') {
     const buf = this.taps[branch].out;
     return buf[i % buf.length];
+  }
+
+  // ¿La muestra i de la salida es un instante de muestreo del ADC?
+  isAdcSample(i: number, branch: Branch) {
+    return i % Math.round(FS / this.chains[branch].adc.fs) === 0;
   }
 
   // Muestra i de la referencia limpia, en mV.
@@ -150,23 +165,43 @@ export class BioEngine {
     this.carry = exact - n;
     const { clean: tClean, input: tInput } = this.shared;
     const len = tClean.length;
+    const sum = { clean: 0, input: 0, a: [0, 0, 0, 0], b: [0, 0, 0, 0] };
     for (let i = 0; i < n; i++) {
-      const t = this.count / FS;
       const j = this.count % len;
-      const clean = this.ecg.sample(t);
-      // Tensión diferencial entre los electrodos y modo común, en mV.
-      const vd = clean + this.noise.sample(t);
-      const vcm = this.noise.common;
-      tClean[j] = clean;
-      tInput[j] = vd;
+      sum.clean = 0;
+      sum.input = 0;
+      sum.a.fill(0);
+      sum.b.fill(0);
+      for (let k = 0; k < OVERSAMPLE; k++) {
+        const na = this.count * OVERSAMPLE + k;
+        const t = na / FA;
+        const clean = this.ecg.sample(t);
+        // Tensión diferencial entre los electrodos y modo común, en mV.
+        const vd = clean + this.noise.sample(t);
+        const vcm = this.noise.common;
+        sum.clean += clean;
+        sum.input += vd;
+        for (const b of BRANCHES) {
+          const chain = this.chains[b];
+          chain.process(vd, vcm, na, FA);
+          const s = sum[b];
+          s[0] += chain.ampOut;
+          s[1] += chain.hpOut;
+          s[2] += chain.lpOut;
+          s[3] += chain.notchOut;
+        }
+      }
+      tClean[j] = sum.clean / OVERSAMPLE;
+      tInput[j] = sum.input / OVERSAMPLE;
       for (const b of BRANCHES) {
-        const chain = this.chains[b];
         const taps = this.taps[b];
-        chain.process(vd, vcm);
-        taps.amp[j] = chain.ampOut;
-        taps.hp[j] = chain.hpOut;
-        taps.lp[j] = chain.lpOut;
-        taps.out[j] = chain.out;
+        const s = sum[b];
+        taps.amp[j] = s[0] / OVERSAMPLE;
+        taps.hp[j] = s[1] / OVERSAMPLE;
+        taps.lp[j] = s[2] / OVERSAMPLE;
+        taps.notch[j] = s[3] / OVERSAMPLE;
+        // El ADC retiene su valor: se toma tal cual, sin promediar.
+        taps.out[j] = this.chains[b].out;
       }
       this.count++;
     }

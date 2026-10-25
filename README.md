@@ -48,17 +48,19 @@ se puede poner, por ejemplo, un pasa altos de 0,05 Hz en una rama y uno de
 
 ## Estado
 
-Etapas 0 a 5 hechas: esqueleto, fuente ECG sintética (frecuencia,
+Etapas 0 a 6 hechas: esqueleto, fuente ECG sintética (frecuencia,
 variabilidad, amplitud, desnivel ST), monitor de barrido con cuadrícula de
 papel ECG, ruido ajustable (red eléctrica diferencial y en modo común,
 deriva de línea de base, EMG, ruido blanco, offset de electrodos,
 artefactos de movimiento), amplificador de instrumentación de tres op-amps,
 filtros pasa altos y pasa bajos de primer orden (RC) o segundo orden
 (Sallen-Key Butterworth, Bessel o Chebyshev), bandas típicas de monitoreo y
-diagnóstico, y notch doble T. Dos ramas A/B con la misma entrada y métricas
-de cada una contra el ECG limpio (retardo, SNR, error eficaz, onda R, ST).
-Vistas: espectro, Bode calculado y medido, y señal en cada etapa. Lo
-siguiente es el ADC. Ver [PLAN.md](PLAN.md).
+diagnóstico, notch doble T y conversor A/D (frecuencia de muestreo,
+resolución, rango, aliasing y cuantización). Dos ramas A/B con la misma
+entrada y métricas de cada una contra el ECG limpio (retardo, SNR, error
+eficaz, onda R, ST). Vistas: espectro con la frecuencia de Nyquist, Bode
+calculado y medido, y señal en cada etapa. Lo siguiente es el EOG. Ver
+[PLAN.md](PLAN.md).
 
 ## Cómo correrlo
 
@@ -92,12 +94,13 @@ git tag v0.1.0 && git push origin v0.1.0
 
 | Parte | Dónde |
 | --- | --- |
-| Motor: genera la señal en tiempo real y la guarda en un búfer circular | `web/src/engine/BioEngine.ts` |
+| Motor: la parte analógica a 4 kHz, los búferes de las vistas a 1 kHz | `web/src/engine/BioEngine.ts` |
 | ECG sintético: suma de gaussianas P, Q, R, S, T por latido | `web/src/engine/ecg.ts` |
 | Ruido ajustable, un modelo por fuente | `web/src/engine/noise.ts`, `web/src/components/NoisePanel.tsx` |
 | Filtros básicos y FFT | `web/src/engine/dsp.ts` |
 | Amplificador de instrumentación de tres op-amps | `web/src/engine/amp.ts`, `web/src/components/AmpPanel.tsx`, `web/src/views/AmpSchematic.tsx` |
-| Cadena de una rama (amplificador, filtros, notch) y ramas A/B | `web/src/engine/chain.ts`, `web/src/components/BranchBar.tsx` |
+| Cadena de una rama (amplificador, filtros, notch, ADC) y ramas A/B | `web/src/engine/chain.ts`, `web/src/components/BranchBar.tsx` |
+| Conversor A/D | `web/src/engine/adc.ts`, `web/src/components/AdcPanel.tsx` |
 | Filtros pasa altos, pasa bajos y notch | `web/src/engine/filters.ts`, `web/src/components/FilterPanel.tsx`, `web/src/components/NotchPanel.tsx`, `web/src/views/FilterSchematic.tsx` |
 | Métricas contra el ECG limpio | `web/src/engine/metrics.ts`, `web/src/components/MetricsTable.tsx` |
 | Monitor de barrido con cuadrícula de papel ECG | `web/src/views/MonitorView.tsx` |
