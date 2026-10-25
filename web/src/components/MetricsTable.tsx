@@ -40,6 +40,24 @@ const BY_SOURCE: Record<SourceKind, Column[]> = {
         m.kind === 'ecg' && m.qrs && Number.isFinite(m.qrs.bpmMeasured) ? `${dec(m.qrs.bpmMeasured, 0)} / ${dec(m.qrs.bpmTrue, 0)} lpm` : '—',
     },
   ],
+  emg: [
+    {
+      head: 'Amplitud eficaz',
+      title: 'Valor eficaz de la salida, en % del real: cuánta fuerza parecería que hace el músculo',
+      cell: (m) => (m.kind === 'emg' && Number.isFinite(m.rmsPercent) ? `${dec(m.rmsPercent, 0)} %` : '—'),
+    },
+    {
+      head: 'Frec. mediana medida / real',
+      title: 'Frecuencia que parte la potencia del espectro en dos mitades (baja con la fatiga, y también si se filtra o se muestrea mal)',
+      cell: (m) =>
+        m.kind === 'emg' && Number.isFinite(m.medianMeasured) ? `${dec(m.medianMeasured, 0)} / ${dec(m.medianTrue, 0)} Hz` : '—',
+    },
+    {
+      head: 'Envolvente',
+      title: 'Correlación entre la envolvente medida y la real (valor eficaz en 100 ms): si se ve bien cuándo y cuánto se activa el músculo',
+      cell: (m) => (m.kind === 'emg' && Number.isFinite(m.envelopeCorr) ? `${dec(m.envelopeCorr, 0)} %` : '—'),
+    },
+  ],
   eog: [
     {
       head: 'Error de mirada',

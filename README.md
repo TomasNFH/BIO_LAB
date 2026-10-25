@@ -48,25 +48,26 @@ se puede poner, por ejemplo, un pasa altos de 0,05 Hz en una rama y uno de
 
 ## Estado
 
-Etapas 0 a 8 hechas, y de la 9 la detección de QRS y la pierna derecha: esqueleto, dos fuentes sintéticas (ECG con
-frecuencia, variabilidad, amplitud y desnivel ST; EOG horizontal con
-sacadas, fijaciones, lectura, seguimiento y parpadeos), monitor de barrido
-con cuadrícula de papel ECG y escala en grados para el EOG, ruido ajustable
-con un juego por fuente (red eléctrica diferencial y en modo común, deriva
-de línea de base, EMG, ruido blanco, offset de electrodos, artefactos de
-movimiento), amplificador de instrumentación de tres op-amps con ganancia posterior
-después del pasa altos y circuito de pierna derecha (DRL), filtros pasa
-altos y pasa bajos de primer orden (RC) o segundo orden (Sallen-Key),
-bandas típicas de ECG y EOG, notch doble T y conversor A/D. Dos ramas A/B
-con la misma entrada y métricas de cada una contra la señal limpia.
-Vistas: espectro con la frecuencia de Nyquist, Bode calculado y medido, y
-señal en cada etapa. Diez experimentos listos (uno por cada pregunta del
-plan), ajustes guardados en el navegador, intercambio de ajustes en JSON y
+Etapas 0 a 8 hechas, y de la 9 la detección de QRS, la pierna derecha y el
+EMG: esqueleto, tres fuentes sintéticas (ECG con frecuencia, variabilidad,
+amplitud y desnivel ST; EOG horizontal con sacadas, fijaciones, lectura,
+seguimiento y parpadeos; EMG de superficie con unidades motoras en reposo,
+sostenido, rampa o ráfagas), monitor de barrido con cuadrícula de papel ECG
+y escala en grados para el EOG, ruido ajustable con un juego por fuente (red
+eléctrica diferencial y en modo común, deriva de línea de base, EMG, ruido
+blanco, offset de electrodos, artefactos de movimiento), amplificador de
+instrumentación de tres op-amps con ganancia posterior después del pasa
+altos y circuito de pierna derecha (DRL), filtros pasa altos y pasa bajos de
+primer orden (RC) o segundo orden (Sallen-Key), bandas típicas de ECG, EOG y
+EMG, notch doble T y conversor A/D. Dos ramas A/B con la misma entrada y
+métricas de cada una contra la señal limpia. Vistas: espectro con la
+frecuencia de Nyquist, Bode calculado y medido, y señal en cada etapa. Trece
+experimentos listos (las preguntas del plan, la pierna derecha, el EOG y el
+EMG), ajustes guardados en el navegador, intercambio de ajustes en JSON y
 exportación de todas las señales en CSV. Detector de QRS de Pan-Tompkins en
 cada rama, con sus etapas a la vista y su sensibilidad, VPP y frecuencia
-medida contra los latidos reales. Lo que queda de la etapa 9: EMG como
-fuente, importar registros reales y arritmias. Ver
-[PLAN.md](PLAN.md).
+medida contra los latidos reales. Lo que queda de la etapa 9: importar
+registros reales y arritmias. Ver [PLAN.md](PLAN.md).
 
 ## Cómo correrlo
 
@@ -104,6 +105,7 @@ git tag v0.1.0 && git push origin v0.1.0
 | --- | --- |
 | Motor: la parte analógica a 4 kHz, los búferes de las vistas a 1 kHz | `web/src/engine/BioEngine.ts` |
 | ECG sintético: suma de gaussianas P, Q, R, S, T por latido | `web/src/engine/ecg.ts` |
+| EMG sintético: unidades motoras, reclutamiento y disparo (Fuglevand) | `web/src/engine/emg.ts` |
 | EOG sintético: sacadas, fijaciones, lectura, seguimiento, parpadeos | `web/src/engine/eog.ts`, `web/src/components/SourcePanel.tsx` |
 | Ruido ajustable, un modelo por fuente | `web/src/engine/noise.ts`, `web/src/components/NoisePanel.tsx` |
 | Filtros básicos y FFT | `web/src/engine/dsp.ts` |

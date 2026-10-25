@@ -36,6 +36,16 @@ export const DEFAULT_NOISE_EOG: NoiseSettings = {
   white: { on: true, level: 0.005 },
 };
 
+// En el EMG el ruido muscular es la señal: se apaga. Lo que molesta es el
+// movimiento (deriva y artefactos), la red y el ruido blanco.
+export const DEFAULT_NOISE_EMG: NoiseSettings = {
+  ...DEFAULT_NOISE,
+  mains: { ...DEFAULT_NOISE.mains, level: 0.05 },
+  wander: { on: true, level: 0.15, breath: 0.25 },
+  emg: { on: false, level: 0.03, bursts: true },
+  white: { on: true, level: 0.005 },
+};
+
 // Banda de frecuencias donde vive cada ruido, para marcarla en el espectro.
 export function noiseBand(id: NoiseId, s: NoiseSettings): [number, number] {
   switch (id) {

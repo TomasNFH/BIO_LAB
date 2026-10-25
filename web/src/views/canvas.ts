@@ -86,6 +86,7 @@ export const COLORS = {
   lp: '#c792ea',
   notch: '#ff79c6',
   aboveNyquist: 'rgba(255, 255, 255, 0.04)',
+  envelope: 'rgba(240, 168, 72, 0.9)',
   branchB: '#6fa8ff',
   measured: '#f2f2f2',
 };

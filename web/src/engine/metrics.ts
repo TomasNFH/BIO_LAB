@@ -1,5 +1,6 @@
 import type { BioEngine } from './BioEngine';
 import type { Branch } from './chain';
+import { fft } from './dsp';
 
 // Qué tan fiel es la salida de una rama, comparada con la referencia limpia
 // en los últimos segundos. Los filtros retrasan la señal unos milisegundos;
@@ -49,7 +50,18 @@ export type EogMetrics = Common & {
   steps: number; // sacadas usadas
 };
 
-export type Metrics = EcgMetrics | EogMetrics;
+// En el EMG lo que se usa es la amplitud (cuánta fuerza), la frecuencia
+// mediana del espectro (cambia con la fatiga, y también si los filtros o el
+// ADC deforman la señal) y la envolvente (cuándo se activa el músculo).
+export type EmgMetrics = Common & {
+  kind: 'emg';
+  rmsPercent: number; // valor eficaz medido, en % del real
+  medianMeasured: number; // frecuencia mediana de la salida, Hz
+  medianTrue: number; // frecuencia mediana de la referencia, Hz
+  envelopeCorr: number; // correlación de las envolventes (RMS en 100 ms), %
+};
+
+export type Metrics = EcgMetrics | EogMetrics | EmgMetrics;
 
 const WINDOW = 8; // s
 const MAX_DELAY = 0.04; // retardo máximo que se busca, s
@@ -103,6 +115,28 @@ export function measure(engine: BioEngine, branch: Branch): Metrics | null {
   const out = (i: number) => engine.sampleAt(i + lag, branch);
   const clean = (i: number) => engine.cleanAt(i);
   const at = (t: number) => Math.round(t * fs);
+
+  if (engine.source === 'emg') {
+    const adc = engine.chains[branch].adc;
+    const adcOn = adc.on;
+    const step = Math.round(fs / adc.fs);
+    let pOut = 0;
+    let pRef = 0;
+    for (let i = start; i < last; i++) {
+      pOut += out(i) ** 2;
+      pRef += clean(i) ** 2;
+    }
+    return {
+      ...common,
+      kind: 'emg',
+      rmsPercent: pRef > 0 ? 100 * Math.sqrt(pOut / pRef) : NaN,
+      // La salida del ADC se analiza en sus muestras, a su frecuencia: el
+      // escalón con que se dibuja entre muestras no es parte de la señal.
+      medianMeasured: adcOn ? medianFrequency((k) => out(k * step), Math.floor(last / step), fs / step) : medianFrequency(out, last, fs),
+      medianTrue: medianFrequency(clean, last, fs),
+      envelopeCorr: envelopeCorrelation(out, clean, start, last, fs),
+    };
+  }
 
   if (engine.source === 'eog') {
     // Sacadas grandes seguidas de una fijación de al menos HOLD segundos,
@@ -210,4 +244,63 @@ function scoreQrs(engine: BioEngine, branch: Branch): QrsScore | null {
     bpmMeasured: 60 / rr(found.filter((t) => t >= start && t <= end)),
     bpmTrue: 60 / rr(truth.map((b) => b.r)),
   };
+}
+
+const MEDIAN_N = 4096;
+const HANN = Float64Array.from({ length: MEDIAN_N }, (_, i) => 0.5 - 0.5 * Math.cos((2 * Math.PI * i) / (MEDIAN_N - 1)));
+
+// Frecuencia que parte la potencia en dos mitades iguales, entre 10 Hz y
+// 500 Hz (o la mitad de fs, si es menos), en las últimas 4096 muestras.
+function medianFrequency(x: (i: number) => number, end: number, fs: number) {
+  const re = new Float64Array(MEDIAN_N);
+  const im = new Float64Array(MEDIAN_N);
+  let mean = 0;
+  for (let k = 0; k < MEDIAN_N; k++) mean += x(end - MEDIAN_N + k);
+  mean /= MEDIAN_N;
+  for (let k = 0; k < MEDIAN_N; k++) re[k] = (x(end - MEDIAN_N + k) - mean) * HANN[k];
+  fft(re, im);
+  const df = fs / MEDIAN_N;
+  const k0 = Math.ceil(10 / df);
+  const k1 = Math.min(MEDIAN_N / 2 - 1, Math.floor(Math.min(500, fs / 2) / df));
+  let total = 0;
+  for (let k = k0; k <= k1; k++) total += re[k] ** 2 + im[k] ** 2;
+  if (total <= 0) return NaN;
+  let acc = 0;
+  for (let k = k0; k <= k1; k++) {
+    acc += re[k] ** 2 + im[k] ** 2;
+    if (acc >= total / 2) return k * df;
+  }
+  return NaN;
+}
+
+// Correlación (en %) entre las envolventes de las dos señales: el valor
+// eficaz en ventanas de 100 ms, cada 20 ms.
+function envelopeCorrelation(a: (i: number) => number, b: (i: number) => number, start: number, end: number, fs: number) {
+  const win = Math.round(0.1 * fs);
+  const step = Math.round(0.02 * fs);
+  const ea: number[] = [];
+  const eb: number[] = [];
+  for (let i = start; i + win <= end; i += step) {
+    let sa = 0;
+    let sb = 0;
+    for (let k = i; k < i + win; k++) {
+      sa += a(k) ** 2;
+      sb += b(k) ** 2;
+    }
+    ea.push(Math.sqrt(sa / win));
+    eb.push(Math.sqrt(sb / win));
+  }
+  const n = ea.length;
+  if (n < 3) return NaN;
+  const ma = ea.reduce((s, v) => s + v, 0) / n;
+  const mb = eb.reduce((s, v) => s + v, 0) / n;
+  let cov = 0;
+  let va = 0;
+  let vb = 0;
+  for (let k = 0; k < n; k++) {
+    cov += (ea[k] - ma) * (eb[k] - mb);
+    va += (ea[k] - ma) ** 2;
+    vb += (eb[k] - mb) ** 2;
+  }
+  return va > 0 && vb > 0 ? (100 * cov) / Math.sqrt(va * vb) : NaN;
 }

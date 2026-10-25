@@ -1,5 +1,6 @@
 import { BRANCHES, Chain, DEFAULT_BRANCHES, type Branch, type ChainSettings } from './chain';
 import { DEFAULT_ECG, EcgSource, type EcgSettings } from './ecg';
+import { DEFAULT_EMG, EmgSource, type EmgSettings } from './emg';
 import { DEFAULT_EOG, EogSource, type EogSettings } from './eog';
 import { DEFAULT_NOISE, NoiseSource, type NoiseSettings } from './noise';
 import { QrsDetector } from './qrs';
@@ -17,7 +18,7 @@ const MAX_STEP = 0.1;
 export type EngineState = { playing: boolean };
 
 // Señal fisiológica que entra a la cadena.
-export type SourceKind = 'ecg' | 'eog';
+export type SourceKind = 'ecg' | 'eog' | 'emg';
 
 // Puntos de prueba, en orden. Los dos primeros son comunes a las dos ramas;
 // el resto existe una vez por rama. Todos en mV referidos a la entrada.
@@ -54,6 +55,7 @@ export class BioEngine {
   readonly analogFs = FA;
   readonly ecg = new EcgSource(DEFAULT_ECG);
   readonly eog = new EogSource(DEFAULT_EOG);
+  readonly emg = new EmgSource(DEFAULT_EMG);
   source: SourceKind = 'ecg';
   readonly noise = new NoiseSource(FA, DEFAULT_NOISE);
   readonly chains: Record<Branch, Chain> = {
@@ -141,6 +143,10 @@ export class BioEngine {
     this.eog.set(settings);
   }
 
+  setEmg(settings: EmgSettings) {
+    this.emg.set(settings);
+  }
+
   setSource(kind: SourceKind) {
     if (kind === this.source) return;
     this.source = kind;
@@ -199,7 +205,8 @@ export class BioEngine {
       for (let k = 0; k < OVERSAMPLE; k++) {
         const na = this.count * OVERSAMPLE + k;
         const t = na / FA;
-        const clean = this.source === 'ecg' ? this.ecg.sample(t) : this.eog.sample(t);
+        const clean =
+          this.source === 'ecg' ? this.ecg.sample(t) : this.source === 'eog' ? this.eog.sample(t) : this.emg.sample(t);
         // Tensión diferencial entre los electrodos y modo común, en mV.
         const vd = clean + this.noise.sample(t);
         const vcm = this.noise.common;

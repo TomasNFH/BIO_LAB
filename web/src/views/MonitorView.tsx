@@ -11,9 +11,10 @@ export type MonitorOptions = {
   other: boolean; // superponer la otra rama
   samples: boolean; // marcar los instantes de muestreo del ADC
   detections: boolean; // marcar los QRS que encontró el detector
+  envelope: boolean; // dibujar la envolvente del EMG
 };
 
-export const DEFAULT_MONITOR: MonitorOptions = { speed: 25, gain: 10, labels: true, reference: true, other: false, samples: false, detections: true };
+export const DEFAULT_MONITOR: MonitorOptions = { speed: 25, gain: 10, labels: true, reference: true, other: false, samples: false, detections: true, envelope: true };
 
 // Escala de la cuadrícula: píxeles CSS por milímetro de "papel".
 const PX_PER_MM = 4;
@@ -25,7 +26,7 @@ const GAP_PX = 24;
 // empezar, borrando lo viejo justo delante del cursor.
 export function MonitorView({ engine, options, branch }: { engine: BioEngine; options: MonitorOptions; branch: Branch }) {
   const ref = useCanvasLoop((g, w, h) => {
-    const { speed, gain, labels, reference, other, samples, detections } = options;
+    const { speed, gain, labels, reference, other, samples, detections, envelope } = options;
     const otherBranch: Branch = branch === 'a' ? 'b' : 'a';
     const color = BRANCH_COLORS[branch];
     const pxPerSec = PX_PER_MM * speed;
@@ -85,10 +86,40 @@ export function MonitorView({ engine, options, branch }: { engine: BioEngine; op
     const eog = engine.source === 'eog';
     if (eog) drawDegrees(g, w, h, mid, (pxPerMv * engine.eog.sensitivity) / 1000);
 
+    // Envolvente del EMG: valor eficaz en 100 ms, arriba y abajo del trazo.
+    // La real (de la señal limpia) va punteada en gris.
+    if (engine.source === 'emg' && envelope) {
+      const win = Math.round(0.1 * fs);
+      const band = (at: (i: number) => number, color: string, dash: number[], width: number) => {
+        g.strokeStyle = color;
+        g.lineWidth = width;
+        g.setLineDash(dash);
+        for (const sign of [1, -1]) {
+          g.beginPath();
+          let sum = 0;
+          let prevX = Infinity;
+          for (let i = start - win; i < end; i++) {
+            if (i >= engine.oldest) sum += at(i) ** 2;
+            if (i - win >= engine.oldest) sum -= at(i - win) ** 2;
+            if (i < start) continue;
+            const x = xOf(i);
+            const y = yOf(sign * Math.sqrt(Math.max(0, sum) / win));
+            if (x < prevX) g.moveTo(x, y);
+            else g.lineTo(x, y);
+            prevX = x;
+          }
+          g.stroke();
+        }
+        g.setLineDash([]);
+      };
+      band((i) => engine.cleanAt(i), COLORS.reference, [4, 3], 1.2);
+      band((i) => engine.sampleAt(i, branch), COLORS.envelope, [], 2.2);
+    }
+
     // Un triángulo sobre cada QRS que encontró el detector de la rama; los
     // de búsqueda hacia atrás, huecos.
     const qrs = engine.qrs[branch];
-    if (detections && !eog) {
+    if (detections && engine.source === 'ecg') {
       g.fillStyle = color;
       g.strokeStyle = color;
       g.lineWidth = 1.2;
@@ -131,7 +162,9 @@ export function MonitorView({ engine, options, branch }: { engine: BioEngine; op
     g.font = '600 15px system-ui, sans-serif';
     g.fillStyle = color;
     g.textAlign = 'right';
-    if (eog) {
+    if (engine.source === 'emg') {
+      g.fillText(`Rama ${branch.toUpperCase()} · EMG · esfuerzo ${dec(engine.emg.currentLevel * 100, 0)} %`, w - 10, 22);
+    } else if (eog) {
       // La mirada real (sin ruido ni filtros), para comparar con el trazo.
       const deg = engine.eog.angleAt(now);
       const side = Math.abs(deg) < 0.5 ? 'al centro' : `${dec(Math.abs(deg), 0)}° ${deg > 0 ? 'der.' : 'izq.'}`;

@@ -205,6 +205,13 @@ actual.
      Si pasan 3 s sin ningún QRS vuelve a aprender los niveles.
    - Hecho: pierna derecha (DRL), con su experimento: 3,2 V de modo común
      saturan la etapa 1 sin DRL y quedan en 78 mV con DRL.
+   - Hecho: EMG de superficie como fuente, con el modelo de unidades motoras
+     de Fuglevand (1993): reclutamiento por tamaño, disparos de 8 a 35 Hz,
+     MUAP bifásicos y trifásicos. Tiene su juego de ruidos, banda de 20 a
+     450 Hz, envolvente en el monitor y métricas propias (amplitud eficaz,
+     frecuencia mediana medida en las muestras del ADC, correlación de la
+     envolvente). Experimentos: filtros de ECG contra filtros de EMG, y ADC
+     a 250 Hz contra 1 kHz.
 
 Las etapas 1 a 4 son la base; la mayor parte del aprendizaje está en la 3,
 la 4 y la 5.

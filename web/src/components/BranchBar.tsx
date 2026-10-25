@@ -1,14 +1,17 @@
 import { BRANCHES, type Branch, type ChainSettings } from '../engine/chain';
 import { cutoff, PRESETS } from '../engine/filters';
+import { EMG_HP, EMG_LP } from '../lab';
 import { hz } from './units';
 
 // Pasa banda = pasa altos y pasa bajos en cascada. Cada botón fija los dos
 // filtros de la rama a la vez, sin tocar su orden. El EOG necesita la
-// continua: sin pasa altos y con un pasa bajos de 30 Hz.
+// continua: sin pasa altos y con un pasa bajos de 30 Hz. El EMG va de 20 a
+// 450 Hz.
 const BANDS = [
   { label: 'ECG monitoreo', hp: PRESETS.hp[1], lp: PRESETS.lp[0] },
   { label: 'ECG diagnóstico', hp: PRESETS.hp[0], lp: PRESETS.lp[1] },
   { label: 'EOG', hp: null, lp: { r: 10e3, c: 530e-9 } },
+  { label: 'EMG', hp: EMG_HP, lp: EMG_LP },
 ];
 
 type Props = {
@@ -66,7 +69,8 @@ export function BranchBar({ branch, onBranch, chains, onChange }: Props) {
         La misma señal (con su ruido) entra a dos cadenas completas, A y B. Los paneles de abajo
         editan la rama elegida y las vistas la muestran; la tecla B cambia de rama. Un pasa banda
         es un pasa altos y un pasa bajos en cascada: en el ECG la banda de monitoreo limpia más
-        y la de diagnóstico deforma menos; el EOG necesita llegar hasta la continua (CC).
+        y la de diagnóstico deforma menos; el EOG necesita llegar hasta la continua (CC) y el
+        EMG, hasta 450 Hz (con el ADC a 1 kHz).
       </p>
     </section>
   );

@@ -1,9 +1,10 @@
 import type { SourceKind } from './engine/BioEngine';
 import { DEFAULT_BRANCHES, DEFAULT_CHAIN, type Branch, type ChainSettings } from './engine/chain';
 import { DEFAULT_ECG, type EcgSettings } from './engine/ecg';
+import { DEFAULT_EMG, type EmgSettings } from './engine/emg';
 import { DEFAULT_EOG, type EogSettings } from './engine/eog';
 import { DEFAULT_HP, DEFAULT_LP } from './engine/filters';
-import { DEFAULT_NOISE, DEFAULT_NOISE_EOG, type NoiseSettings } from './engine/noise';
+import { DEFAULT_NOISE, DEFAULT_NOISE_EMG, DEFAULT_NOISE_EOG, type NoiseSettings } from './engine/noise';
 
 // Todo lo que define un experimento: la fuente, su señal, los ruidos de
 // cada fuente y las dos cadenas. Las vistas no son parte del ajuste.
@@ -11,6 +12,7 @@ export type LabSettings = {
   source: SourceKind;
   ecg: EcgSettings;
   eog: EogSettings;
+  emg: EmgSettings;
   noises: Record<SourceKind, NoiseSettings>;
   chains: Record<Branch, ChainSettings>;
 };
@@ -25,7 +27,8 @@ export const DEFAULT_LAB: LabSettings = {
   source: 'ecg',
   ecg: DEFAULT_ECG,
   eog: DEFAULT_EOG,
-  noises: { ecg: DEFAULT_NOISE, eog: DEFAULT_NOISE_EOG },
+  emg: DEFAULT_EMG,
+  noises: { ecg: DEFAULT_NOISE, eog: DEFAULT_NOISE_EOG, emg: DEFAULT_NOISE_EMG },
   chains: DEFAULT_BRANCHES,
 };
 
@@ -50,6 +53,7 @@ function lab(patch: {
   source?: SourceKind;
   ecg?: Partial<EcgSettings>;
   eog?: Partial<EogSettings>;
+  emg?: Partial<EmgSettings>;
   noise?: (n: NoiseSettings) => void;
   a?: (c: ChainSettings) => void;
   b?: (c: ChainSettings) => void;
@@ -58,6 +62,7 @@ function lab(patch: {
   if (patch.source) s.source = patch.source;
   Object.assign(s.ecg, patch.ecg);
   Object.assign(s.eog, patch.eog);
+  Object.assign(s.emg, patch.emg);
   patch.noise?.(s.noises[s.source]);
   // Las dos ramas parten de la cadena por defecto (la de monitoreo).
   s.chains = { a: structuredClone(DEFAULT_CHAIN), b: structuredClone(DEFAULT_CHAIN) };
@@ -68,6 +73,9 @@ function lab(patch: {
 
 const DIAG_HP = { ...DEFAULT_HP, c: 3.3e-6 }; // 0,048 Hz
 const DIAG_LP = { ...DEFAULT_LP, c: 100e-9 }; // 159 Hz
+// Banda del EMG de superficie: 20 a 450 Hz, de segundo orden.
+export const EMG_HP = { ...DEFAULT_HP, r: 10e3, c: 820e-9, order: 2 as const }; // 19,4 Hz
+export const EMG_LP = { ...DEFAULT_LP, r: 10e3, c: 35e-9, order: 2 as const }; // 455 Hz
 
 // Experimentos listos para usar: cada uno compara dos ajustes, uno en cada
 // rama, sobre la misma señal.
@@ -237,6 +245,36 @@ export const BUILTIN_PRESETS: Preset[] = [
       b: (c) => {
         c.hp = { ...DEFAULT_HP, on: false };
         c.lp = { ...DEFAULT_LP, order: 2, c: 530e-9 };
+      },
+    }),
+  },
+  {
+    name: 'EMG: filtros de ECG contra filtros de EMG',
+    description: 'Contracciones en ráfagas. A con la cadena del ECG (pasa bajos de 40 Hz, ADC a 500 Hz): se pierde casi toda la señal y la frecuencia mediana se va para abajo. B con la del EMG (20 a 450 Hz de segundo orden, ADC a 1 kHz): amplitud y envolvente casi iguales a las reales. Mirar las columnas del EMG, el espectro y la envolvente en el monitor.',
+    settings: lab({
+      source: 'emg',
+      b: (c) => {
+        c.hp = { ...EMG_HP };
+        c.lp = { ...EMG_LP };
+        c.adc = { ...c.adc, fs: 1000 };
+      },
+    }),
+  },
+  {
+    name: 'EMG y aliasing: ADC a 250 Hz contra 1 kHz',
+    description: 'Contracción sostenida, los dos con el pasa banda del EMG. A muestrea a 250 Hz: lo que había entre 125 y 450 Hz se dobla por debajo de 125, el espectro cambia de forma y la envolvente sigue peor al músculo. B a 1 kHz. La frecuencia mediana casi no cambia: lo plegado cae a los dos lados. Mirar el espectro con la marca de Nyquist y la columna Envolvente.',
+    settings: lab({
+      source: 'emg',
+      emg: { pattern: 'steady', level: 0.6 },
+      a: (c) => {
+        c.hp = { ...EMG_HP };
+        c.lp = { ...EMG_LP, order: 1 };
+        c.adc = { ...c.adc, fs: 250 };
+      },
+      b: (c) => {
+        c.hp = { ...EMG_HP };
+        c.lp = { ...EMG_LP, order: 1 };
+        c.adc = { ...c.adc, fs: 1000 };
       },
     }),
   },

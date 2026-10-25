@@ -1,5 +1,6 @@
 import type { SourceKind } from '../engine/BioEngine';
 import { DEFAULT_ECG, type EcgSettings } from '../engine/ecg';
+import { DEFAULT_EMG, EMG_PATTERNS, type EmgPattern, type EmgSettings } from '../engine/emg';
 import { DEFAULT_EOG, PATTERNS, type EogPattern, type EogSettings } from '../engine/eog';
 import { dec, fmt, Knob } from './Knob';
 
@@ -10,26 +11,35 @@ type Props = {
   onEcg: (s: EcgSettings) => void;
   eog: EogSettings;
   onEog: (s: EogSettings) => void;
+  emg: EmgSettings;
+  onEmg: (s: EmgSettings) => void;
 };
 
-// Fuente de la señal: ECG o EOG sintéticos, cada uno con sus perillas.
-export function SourcePanel({ source, onSource, ecg, onEcg, eog, onEog }: Props) {
+const SOURCES: { id: SourceKind; label: string }[] = [
+  { id: 'ecg', label: 'ECG' },
+  { id: 'eog', label: 'EOG' },
+  { id: 'emg', label: 'EMG' },
+];
+
+// Fuente de la señal: ECG, EOG o EMG sintéticos, cada uno con sus perillas.
+export function SourcePanel({ source, onSource, ecg, onEcg, eog, onEog, emg, onEmg }: Props) {
   const editEcg = (patch: Partial<EcgSettings>) => onEcg({ ...ecg, ...patch });
   const editEog = (patch: Partial<EogSettings>) => onEog({ ...eog, ...patch });
+  const editEmg = (patch: Partial<EmgSettings>) => onEmg({ ...emg, ...patch });
+  const reset = () => (source === 'ecg' ? onEcg(DEFAULT_ECG) : source === 'eog' ? onEog(DEFAULT_EOG) : onEmg(DEFAULT_EMG));
 
   return (
     <section className="panel">
       <div className="panel-head">
         <h2>Fuente</h2>
         <div className="seg">
-          <button className={source === 'ecg' ? 'on' : ''} onClick={() => onSource('ecg')}>
-            ECG
-          </button>
-          <button className={source === 'eog' ? 'on' : ''} onClick={() => onSource('eog')}>
-            EOG
-          </button>
+          {SOURCES.map((x) => (
+            <button key={x.id} className={source === x.id ? 'on' : ''} onClick={() => onSource(x.id)}>
+              {x.label}
+            </button>
+          ))}
         </div>
-        <button onClick={() => (source === 'ecg' ? onEcg(DEFAULT_ECG) : onEog(DEFAULT_EOG))}>Restablecer</button>
+        <button onClick={reset}>Restablecer</button>
       </div>
 
       {source === 'ecg' ? (
@@ -50,7 +60,7 @@ export function SourcePanel({ source, onSource, ecg, onEcg, eog, onEog }: Props)
             elegido deforma.
           </p>
         </>
-      ) : (
+      ) : source === 'eog' ? (
         <>
           <div className="switch-rows">
             <span className="switch-label">Movimiento de los ojos</span>
@@ -75,6 +85,34 @@ export function SourcePanel({ source, onSource, ecg, onEcg, eog, onEog }: Props)
             entre ellas la mirada se queda quieta: eso es una tensión continua. Por eso el EOG se
             registra con acople en continua o con un pasa altos muy bajo, y un pasa altos de ECG lo
             arruina: cada fijación se desvanece hacia cero.
+          </p>
+        </>
+      ) : (
+        <>
+          <div className="switch-rows">
+            <span className="switch-label">Contracción</span>
+            <div className="seg">
+              {(Object.keys(EMG_PATTERNS) as EmgPattern[]).map((p) => (
+                <button key={p} className={emg.pattern === p ? 'on' : ''} onClick={() => editEmg({ pattern: p })}>
+                  {EMG_PATTERNS[p]}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="knobs">
+            <Knob label="Esfuerzo" value={emg.level} min={0.05} max={1} step={0.05} defaultValue={DEFAULT_EMG.level} format={fmt.pct} onChange={(level) => editEmg({ level })} />
+            <Knob label="Período" value={emg.period} min={1} max={10} step={0.5} defaultValue={DEFAULT_EMG.period} format={(v) => `${dec(v, 1)} s`} onChange={(period) => editEmg({ period })} />
+            <Knob label="Unidades" value={emg.units} min={20} max={200} step={10} defaultValue={DEFAULT_EMG.units} format={(v) => `${v}`} onChange={(units) => editEmg({ units })} />
+            <Knob label="MUAP máx." value={emg.amplitude} min={0.1} max={2} step={0.05} defaultValue={DEFAULT_EMG.amplitude} format={fmt.mv} onChange={(amplitude) => editEmg({ amplitude })} />
+          </div>
+          <p className="muted small">
+            Electromiograma de superficie: la suma de los potenciales de acción de las unidades
+            motoras (una neurona y las fibras que mueve). Al subir el esfuerzo se suman unidades,
+            de las chicas a las grandes, y cada una dispara más seguido (de 8 a 35 veces por
+            segundo). Queda una señal parecida a ruido, de 20 a 450 Hz, que crece con la fuerza.
+            Necesita lo contrario que el ECG: un pasa altos de unos 20 Hz para sacar el movimiento,
+            un pasa bajos de 450 Hz y un ADC de al menos 1 kHz. El período vale para la rampa y las
+            ráfagas; MUAP máx. es el pico de la unidad más grande.
           </p>
         </>
       )}

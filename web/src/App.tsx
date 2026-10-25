@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { BioEngine, type EngineState, type SourceKind } from './engine/BioEngine';
 import { BRANCHES, DEFAULT_BRANCHES, type Branch, type ChainSettings } from './engine/chain';
 import { DEFAULT_ECG, type EcgSettings } from './engine/ecg';
+import { DEFAULT_EMG, type EmgSettings } from './engine/emg';
 import { DEFAULT_EOG, type EogSettings } from './engine/eog';
-import { DEFAULT_NOISE, DEFAULT_NOISE_EOG, noiseBand, type NoiseId, type NoiseSettings } from './engine/noise';
+import { DEFAULT_NOISE, DEFAULT_NOISE_EMG, DEFAULT_NOISE_EOG, noiseBand, type NoiseId, type NoiseSettings } from './engine/noise';
 import { AdcPanel } from './components/AdcPanel';
 import { AmpPanel } from './components/AmpPanel';
 import { BranchBar } from './components/BranchBar';
@@ -54,8 +55,13 @@ export function App() {
   const [source, setSource] = useState<SourceKind>('ecg');
   const [ecg, setEcg] = useState<EcgSettings>(DEFAULT_ECG);
   const [eog, setEog] = useState<EogSettings>(DEFAULT_EOG);
+  const [emg, setEmg] = useState<EmgSettings>(DEFAULT_EMG);
   // Cada fuente tiene su propio juego de ruidos.
-  const [noises, setNoises] = useState<Record<SourceKind, NoiseSettings>>({ ecg: DEFAULT_NOISE, eog: DEFAULT_NOISE_EOG });
+  const [noises, setNoises] = useState<Record<SourceKind, NoiseSettings>>({
+    ecg: DEFAULT_NOISE,
+    eog: DEFAULT_NOISE_EOG,
+    emg: DEFAULT_NOISE_EMG,
+  });
   const noise = noises[source];
   const setNoise = (n: NoiseSettings) => setNoises((all) => ({ ...all, [source]: n }));
   const [focusNoise, setFocusNoise] = useState<NoiseId | null>(null);
@@ -76,6 +82,7 @@ export function App() {
   useEffect(() => eng.setSource(source), [eng, source]);
   useEffect(() => eng.setEcg(ecg), [eng, ecg]);
   useEffect(() => eng.setEog(eog), [eng, eog]);
+  useEffect(() => eng.setEmg(emg), [eng, emg]);
   useEffect(() => eng.setNoise(noise), [eng, noise]);
   useEffect(() => {
     for (const b of BRANCHES) eng.setChain(b, chains[b]);
@@ -103,16 +110,17 @@ export function App() {
   // fuente se ajustan la ganancia y las marcas del monitor.
   const changeSource = (s: SourceKind) => {
     setSource(s);
-    if (s === 'eog') setView((v) => (v === 'qrs' ? 'spectrum' : v));
+    if (s !== 'ecg') setView((v) => (v === 'qrs' ? 'spectrum' : v));
     setMonitor((m) => ({ ...m, gain: s === 'eog' ? 20 : 10, labels: s === 'ecg' }));
   };
 
   // El ajuste completo, para guardarlo, y cómo cargar uno.
-  const current: LabSettings = { source, ecg, eog, noises, chains };
+  const current: LabSettings = { source, ecg, eog, emg, noises, chains };
   const applyLab = (s: LabSettings) => {
     changeSource(s.source);
     setEcg(s.ecg);
     setEog(s.eog);
+    setEmg(s.emg);
     setNoises(s.noises);
     setChains(s.chains);
   };
@@ -129,7 +137,7 @@ export function App() {
       <header className="header">
         <Logo />
         <h1>Bio Lab</h1>
-        <span className="phase">Etapa 9: detección de QRS y pierna derecha</span>
+        <span className="phase">Etapa 9: QRS, pierna derecha y EMG</span>
       </header>
 
       <ChainStrip />
@@ -196,6 +204,17 @@ export function App() {
                     onChange={(e) => editMonitor({ detections: e.target.checked })}
                   />
                   Marcar QRS detectados
+                </label>
+              )}
+              {source === 'emg' && (
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    checked={monitor.envelope}
+                    onChange={(e) => editMonitor({ envelope: e.target.checked })}
+                  />
+                  <span className="swatch noise" />
+                  Envolvente
                 </label>
               )}
               <label className="check">
@@ -360,11 +379,13 @@ export function App() {
             onEcg={setEcg}
             eog={eog}
             onEog={setEog}
+            emg={emg}
+            onEmg={setEmg}
           />
 
           <NoisePanel
             settings={noise}
-            defaults={source === 'ecg' ? DEFAULT_NOISE : DEFAULT_NOISE_EOG}
+            defaults={source === 'ecg' ? DEFAULT_NOISE : source === 'eog' ? DEFAULT_NOISE_EOG : DEFAULT_NOISE_EMG}
             onChange={setNoise}
             onFocusNoise={setFocusNoise}
           />
