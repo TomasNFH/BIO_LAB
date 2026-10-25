@@ -14,7 +14,9 @@ import { Biquad } from './dsp';
 // Reglas extra: nada en 200 ms después de un QRS (período refractario);
 // entre 200 y 360 ms, un pico con poca pendiente es una onda T; y si pasa
 // 1,66 veces el RR medio sin detectar nada, se vuelve a buscar con la mitad
-// del umbral (búsqueda hacia atrás).
+// del umbral (búsqueda hacia atrás). Si pasan 3 s sin ningún QRS (por
+// ejemplo porque un salto grande infló los umbrales), vuelve a aprender los
+// niveles con los últimos 2 s.
 
 export type QrsPoint = 'x' | 'bp' | 'der' | 'sq' | 'int' | 'thr';
 export const QRS_POINTS: QrsPoint[] = ['x', 'bp', 'der', 'sq', 'int', 'thr'];
@@ -31,6 +33,7 @@ const WINDOW = 0.15; // s de integración
 const REFRACTORY = 0.2; // s
 const T_WAVE = 0.36; // s
 const SEARCHBACK = 1.66; // veces el RR medio
+const RELEARN = 3; // s sin QRS antes de volver a aprender
 const KEEP = 30; // s de detecciones guardadas
 
 export class QrsDetector {
@@ -52,6 +55,7 @@ export class QrsDetector {
   private lastR = -Infinity;
   private rr: number[] = []; // últimos intervalos RR, en muestras
   private candidate: Peak | null = null; // mayor pico de ruido desde el último QRS
+  private lastRelearn = -Infinity;
   readonly detections: Detection[] = [];
 
   constructor(private fs: number, len: number) {
@@ -116,6 +120,24 @@ export class QrsDetector {
     const k = i - 1;
     const p = at('int', k);
     if (p > at('int', k - 1) && p >= int && p > 0) this.onPeak(k, p);
+
+    // Demasiado tiempo sin ningún QRS: los umbrales quedaron mal; volver a
+    // medir los niveles con los últimos LEARN segundos.
+    if (i - Math.max(this.lastQrs, this.lastRelearn, this.start + LEARN * this.fs) > RELEARN * this.fs) {
+      let max = 0;
+      let sum = 0;
+      const n = LEARN * this.fs;
+      for (let m = i - n + 1; m <= i; m++) {
+        const v = at('int', m);
+        max = Math.max(max, v);
+        sum += v;
+      }
+      this.spki = max / 3;
+      this.npki = sum / n / 2;
+      this.candidate = null;
+      this.updateThreshold();
+      this.lastRelearn = i;
+    }
 
     // Búsqueda hacia atrás: pasó demasiado sin un QRS.
     if (this.candidate && i - this.lastQrs > SEARCHBACK * this.rrMean && this.candidate.p > this.thr1 / 2) {

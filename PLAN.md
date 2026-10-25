@@ -114,7 +114,9 @@ rechaza según su CMRR.
 - Saturación a las tensiones de alimentación: con offset de electrodo de
   300 mV y ganancia 1000 la salida satura. Enseña por qué la ganancia se
   reparte entre etapas con un pasa altos en el medio.
-- Más adelante: circuito de pierna derecha (DRL) para reducir el modo común.
+- Circuito de pierna derecha (DRL, Winter y Webster): mide el modo común, lo
+  invierte con ganancia G = 2·Rf/Ra y lo devuelve al cuerpo, que queda a
+  Vcm / (1 + G); satura si hace falta más tensión que la alimentación.
 
 ### Filtros
 
@@ -200,6 +202,9 @@ actual.
      y búsqueda hacia atrás). Se juzga contra los latidos reales:
      sensibilidad, VPP y frecuencia medida. Tiene su propia pestaña con las
      etapas y marca las detecciones en el monitor.
+     Si pasan 3 s sin ningún QRS vuelve a aprender los niveles.
+   - Hecho: pierna derecha (DRL), con su experimento: 3,2 V de modo común
+     saturan la etapa 1 sin DRL y quedan en 78 mV con DRL.
 
 Las etapas 1 a 4 son la base; la mayor parte del aprendizaje está en la 3,
 la 4 y la 5.

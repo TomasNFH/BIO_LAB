@@ -115,6 +115,29 @@ export const BUILTIN_PRESETS: Preset[] = [
     }),
   },
   {
+    name: 'Pierna derecha: sin y con DRL',
+    description: 'Modo común de 3,2 V y 200 mV de offset, sin notch; las dos ramas con ×10 en la etapa 1 y ×10 después del pasa altos. A sin DRL: en los picos de la red la etapa 1 tiene que llegar a 3,2 + 1,1 V, se pasa de la alimentación y recorta. B con DRL (G = 40): el cuerpo queda a unos 78 mV y no satura nada. Mirar el aviso de saturación, el monitor y el panel del DRL.',
+    settings: lab({
+      noise: (n) => {
+        n.mains.common = 3200;
+        n.mains.level = 0;
+        n.offset.on = true;
+        n.offset.level = 200;
+      },
+      a: (c) => {
+        c.amp.g2 = 1;
+        c.post = { gain: 10 };
+        c.lp = { ...DIAG_LP };
+      },
+      b: (c) => {
+        c.amp.g2 = 1;
+        c.post = { gain: 10 };
+        c.lp = { ...DIAG_LP };
+        c.drl = { on: true, rf: 500_000 };
+      },
+    }),
+  },
+  {
     name: 'ST: pasa altos de 0,5 Hz contra 0,05 Hz',
     description: 'ST elevado 0,2 mV y deriva fuerte. A (0,48 Hz) quita más deriva pero achica el ST; B (0,048 Hz) lo conserva. Mirar la columna ST de las métricas.',
     settings: lab({

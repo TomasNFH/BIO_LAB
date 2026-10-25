@@ -207,3 +207,4 @@ input.text {
 .sub-title { font-weight: 600; }
 optgroup { color: var(--muted); }
 .post-gain { margin-top: 12px; }
+.schematic.drl { max-width: 340px; }

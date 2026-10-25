@@ -1,5 +1,6 @@
 import { Adc, DEFAULT_ADC, type AdcSettings } from './adc';
 import { DEFAULT_AMP, InstrumentationAmp, type AmpSettings } from './amp';
+import { DEFAULT_DRL, Drl, type DrlSettings } from './drl';
 import { DEFAULT_HP, DEFAULT_LP, DEFAULT_NOTCH, Filter, Notch, type FilterSettings, type NotchSettings } from './filters';
 
 export type Branch = 'a' | 'b';
@@ -7,6 +8,7 @@ export const BRANCHES: Branch[] = ['a', 'b'];
 
 export type ChainSettings = {
   amp: AmpSettings;
+  drl: DrlSettings;
   // Ganancia después del pasa altos: como la continua ya no está, se puede
   // amplificar más sin saturar.
   post: { gain: number };
@@ -18,6 +20,7 @@ export type ChainSettings = {
 
 export const DEFAULT_CHAIN: ChainSettings = {
   amp: DEFAULT_AMP,
+  drl: DEFAULT_DRL,
   post: { gain: 1 },
   hp: DEFAULT_HP,
   lp: DEFAULT_LP,
@@ -38,6 +41,7 @@ export const DEFAULT_BRANCHES: Record<Branch, ChainSettings> = {
 // de cada etapa en sus campos, para los puntos de prueba.
 export class Chain {
   readonly amp: InstrumentationAmp;
+  readonly drl: Drl;
   readonly hp: Filter;
   readonly lp: Filter;
   readonly notch: Notch;
@@ -51,6 +55,7 @@ export class Chain {
 
   constructor(fs: number, s: ChainSettings) {
     this.amp = new InstrumentationAmp(s.amp);
+    this.drl = new Drl(s.drl);
     this.hp = new Filter('hp', fs, s.hp);
     this.lp = new Filter('lp', fs, s.lp);
     this.notch = new Notch(fs, s.notch);
@@ -60,6 +65,7 @@ export class Chain {
 
   set(s: ChainSettings) {
     this.amp.set(s.amp);
+    this.drl.set(s.drl);
     this.postGain = s.post.gain;
     this.hp.set(s.hp);
     this.lp.set(s.lp);
@@ -73,10 +79,14 @@ export class Chain {
     return (this.amp.on ? this.amp.gain : 1) * this.postGain;
   }
 
-  // vd: tensión diferencial entre los electrodos; vcm: modo común. En mV.
+  // vd: tensión diferencial entre los electrodos; vcm0: modo común del
+  // cuerpo sin DRL. En mV.
   // n: índice de esta muestra a la frecuencia interna fa.
   // Todo lo que sale está en mV referido a la entrada.
-  process(vd: number, vcm: number, n: number, fa: number) {
+  process(vd: number, vcm0: number, n: number, fa: number) {
+    // El DRL baja el modo común del cuerpo antes de que llegue al
+    // amplificador (usa la misma alimentación).
+    const vcm = this.drl.process(vcm0, this.amp.swing);
     let amp = vd;
     if (this.amp.on) {
       const vo = this.amp.process((vcm + vd / 2) / 1000, (vcm - vd / 2) / 1000);

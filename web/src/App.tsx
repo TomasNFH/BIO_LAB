@@ -7,6 +7,7 @@ import { DEFAULT_NOISE, DEFAULT_NOISE_EOG, noiseBand, type NoiseId, type NoiseSe
 import { AdcPanel } from './components/AdcPanel';
 import { AmpPanel } from './components/AmpPanel';
 import { BranchBar } from './components/BranchBar';
+import { DrlPanel } from './components/DrlPanel';
 import { ChainStrip } from './components/ChainStrip';
 import { FilterPanel } from './components/FilterPanel';
 import { Logo } from './components/Logo';
@@ -128,7 +129,7 @@ export function App() {
       <header className="header">
         <Logo />
         <h1>Bio Lab</h1>
-        <span className="phase">Etapa 9: detección de QRS</span>
+        <span className="phase">Etapa 9: detección de QRS y pierna derecha</span>
       </header>
 
       <ChainStrip />
@@ -377,6 +378,15 @@ export function App() {
             onChange={(amp) => editChain({ amp })}
             postGain={chain.post.gain}
             onPostGain={(gain) => editChain({ post: { gain } })}
+          />
+
+          <DrlPanel
+            engine={eng}
+            branch={branch}
+            settings={chain.drl}
+            onChange={(drl) => editChain({ drl })}
+            cm0={noise.enabled && noise.mains.on ? noise.mains.common * (noise.mains.harmonics ? 1.5 : 1) : 0}
+            swing={chain.amp.supply - 1}
           />
 
           <FilterPanel kind="hp" settings={chain.hp} onChange={(hp) => editChain({ hp })} />

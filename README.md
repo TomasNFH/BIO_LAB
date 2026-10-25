@@ -48,14 +48,14 @@ se puede poner, por ejemplo, un pasa altos de 0,05 Hz en una rama y uno de
 
 ## Estado
 
-Etapas 0 a 8 hechas, y de la 9 la detección de QRS: esqueleto, dos fuentes sintéticas (ECG con
+Etapas 0 a 8 hechas, y de la 9 la detección de QRS y la pierna derecha: esqueleto, dos fuentes sintéticas (ECG con
 frecuencia, variabilidad, amplitud y desnivel ST; EOG horizontal con
 sacadas, fijaciones, lectura, seguimiento y parpadeos), monitor de barrido
 con cuadrícula de papel ECG y escala en grados para el EOG, ruido ajustable
 con un juego por fuente (red eléctrica diferencial y en modo común, deriva
 de línea de base, EMG, ruido blanco, offset de electrodos, artefactos de
 movimiento), amplificador de instrumentación de tres op-amps con ganancia posterior
-después del pasa altos, filtros pasa
+después del pasa altos y circuito de pierna derecha (DRL), filtros pasa
 altos y pasa bajos de primer orden (RC) o segundo orden (Sallen-Key),
 bandas típicas de ECG y EOG, notch doble T y conversor A/D. Dos ramas A/B
 con la misma entrada y métricas de cada una contra la señal limpia.
@@ -64,8 +64,8 @@ señal en cada etapa. Diez experimentos listos (uno por cada pregunta del
 plan), ajustes guardados en el navegador, intercambio de ajustes en JSON y
 exportación de todas las señales en CSV. Detector de QRS de Pan-Tompkins en
 cada rama, con sus etapas a la vista y su sensibilidad, VPP y frecuencia
-medida contra los latidos reales. Lo que queda de la etapa 9: pierna
-derecha (DRL), EMG como fuente, importar registros reales y arritmias. Ver
+medida contra los latidos reales. Lo que queda de la etapa 9: EMG como
+fuente, importar registros reales y arritmias. Ver
 [PLAN.md](PLAN.md).
 
 ## Cómo correrlo
@@ -107,6 +107,7 @@ git tag v0.1.0 && git push origin v0.1.0
 | EOG sintético: sacadas, fijaciones, lectura, seguimiento, parpadeos | `web/src/engine/eog.ts`, `web/src/components/SourcePanel.tsx` |
 | Ruido ajustable, un modelo por fuente | `web/src/engine/noise.ts`, `web/src/components/NoisePanel.tsx` |
 | Filtros básicos y FFT | `web/src/engine/dsp.ts` |
+| Pierna derecha (DRL) | `web/src/engine/drl.ts`, `web/src/components/DrlPanel.tsx` |
 | Amplificador de instrumentación de tres op-amps | `web/src/engine/amp.ts`, `web/src/components/AmpPanel.tsx`, `web/src/views/AmpSchematic.tsx` |
 | Cadena de una rama (amplificador, filtros, notch, ADC) y ramas A/B | `web/src/engine/chain.ts`, `web/src/components/BranchBar.tsx` |
 | Conversor A/D | `web/src/engine/adc.ts`, `web/src/components/AdcPanel.tsx` |
