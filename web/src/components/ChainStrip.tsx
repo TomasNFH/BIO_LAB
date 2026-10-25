@@ -11,7 +11,7 @@ const BLOCKS: { label: string; stage: number }[] = [
   { label: 'Monitor', stage: 1 },
 ];
 
-const CURRENT_STAGE = 4;
+const CURRENT_STAGE = 5;
 
 export function ChainStrip() {
   return (

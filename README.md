@@ -48,15 +48,17 @@ se puede poner, por ejemplo, un pasa altos de 0,05 Hz en una rama y uno de
 
 ## Estado
 
-Etapas 0 a 4 hechas: esqueleto, fuente ECG sintética (frecuencia,
-variabilidad, amplitud), monitor de barrido con cuadrícula de papel ECG,
-ruido ajustable (red eléctrica diferencial y en modo común, deriva de línea
-de base, EMG, ruido blanco, offset de electrodos, artefactos de movimiento),
-amplificador de instrumentación de tres op-amps con esquema, CMRR y
-saturación, y filtros RC pasa altos y pasa bajos definidos por R y C. Vistas:
-espectro con SNR, diagrama de Bode con la respuesta medida sobre la señal y
-la señal en cada etapa. Lo siguiente son el pasa banda, el notch y los
-filtros de segundo orden. Ver [PLAN.md](PLAN.md).
+Etapas 0 a 5 hechas: esqueleto, fuente ECG sintética (frecuencia,
+variabilidad, amplitud, desnivel ST), monitor de barrido con cuadrícula de
+papel ECG, ruido ajustable (red eléctrica diferencial y en modo común,
+deriva de línea de base, EMG, ruido blanco, offset de electrodos,
+artefactos de movimiento), amplificador de instrumentación de tres op-amps,
+filtros pasa altos y pasa bajos de primer orden (RC) o segundo orden
+(Sallen-Key Butterworth, Bessel o Chebyshev), bandas típicas de monitoreo y
+diagnóstico, y notch doble T. Dos ramas A/B con la misma entrada y métricas
+de cada una contra el ECG limpio (retardo, SNR, error eficaz, onda R, ST).
+Vistas: espectro, Bode calculado y medido, y señal en cada etapa. Lo
+siguiente es el ADC. Ver [PLAN.md](PLAN.md).
 
 ## Cómo correrlo
 
@@ -75,7 +77,7 @@ npm --prefix web install && npm --prefix web run dev
 
 Las dos formas usan el puerto 5174, así que no se pueden correr a la vez.
 
-Espacio pausa y reanuda el monitor.
+Espacio pausa y reanuda el monitor; B cambia entre las ramas A y B.
 
 ### Versión pública
 
@@ -95,7 +97,9 @@ git tag v0.1.0 && git push origin v0.1.0
 | Ruido ajustable, un modelo por fuente | `web/src/engine/noise.ts`, `web/src/components/NoisePanel.tsx` |
 | Filtros básicos y FFT | `web/src/engine/dsp.ts` |
 | Amplificador de instrumentación de tres op-amps | `web/src/engine/amp.ts`, `web/src/components/AmpPanel.tsx`, `web/src/views/AmpSchematic.tsx` |
-| Filtros RC pasa altos y pasa bajos | `web/src/engine/filters.ts`, `web/src/components/FilterPanel.tsx`, `web/src/views/RcSchematic.tsx` |
+| Cadena de una rama (amplificador, filtros, notch) y ramas A/B | `web/src/engine/chain.ts`, `web/src/components/BranchBar.tsx` |
+| Filtros pasa altos, pasa bajos y notch | `web/src/engine/filters.ts`, `web/src/components/FilterPanel.tsx`, `web/src/components/NotchPanel.tsx`, `web/src/views/FilterSchematic.tsx` |
+| Métricas contra el ECG limpio | `web/src/engine/metrics.ts`, `web/src/components/MetricsTable.tsx` |
 | Monitor de barrido con cuadrícula de papel ECG | `web/src/views/MonitorView.tsx` |
 | Espectro de la salida, con SNR | `web/src/views/SpectrumView.tsx`, `web/src/views/spectrum.ts` |
 | Bode calculado y medido | `web/src/views/BodeView.tsx` |

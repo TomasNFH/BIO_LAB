@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ampGains, DEFAULT_AMP, type AmpSettings, type AmpStats } from '../engine/amp';
 import type { BioEngine } from '../engine/BioEngine';
+import type { Branch } from '../engine/chain';
 import { AmpSchematic } from '../views/AmpSchematic';
 import { ohms } from './units';
 import { dec, Knob } from './Knob';
@@ -14,16 +15,17 @@ const volts = (v: number) => `${dec(v, 2)} V`;
 
 type Props = {
   engine: BioEngine;
+  branch: Branch;
   settings: AmpSettings;
   onChange: (s: AmpSettings) => void;
 };
 
 // Amplificador de instrumentación: perillas por componente, esquema con
 // los valores, ganancias y CMRR calculados, y lo que pasa en la salida.
-export function AmpPanel({ engine, settings, onChange }: Props) {
+export function AmpPanel({ engine, branch, settings, onChange }: Props) {
   const edit = (patch: Partial<AmpSettings>) => onChange({ ...settings, ...patch });
   const g = ampGains(settings);
-  const stats = useAmpStats(engine);
+  const stats = useAmpStats(engine, branch);
 
   return (
     <section className={`panel ${settings.on ? '' : 'block-off'}`}>
@@ -110,14 +112,15 @@ export function AmpPanel({ engine, settings, onChange }: Props) {
 
 // Lee las estadísticas del amplificador cuatro veces por segundo. En
 // pausa se queda con la última lectura.
-function useAmpStats(engine: BioEngine) {
+function useAmpStats(engine: BioEngine, branch: Branch) {
   const [stats, setStats] = useState<AmpStats | null>(null);
   useEffect(() => {
+    setStats(null);
     const id = setInterval(() => {
-      const s = engine.amp.readStats();
+      const s = engine.chains[branch].amp.readStats();
       if (s) setStats(s);
     }, 250);
     return () => clearInterval(id);
-  }, [engine]);
+  }, [engine, branch]);
   return stats;
 }

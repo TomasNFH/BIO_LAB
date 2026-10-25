@@ -1,4 +1,5 @@
-import type { BioEngine, TestPoint } from '../engine/BioEngine';
+import type { BioEngine } from '../engine/BioEngine';
+import { BRANCHES, type Branch } from '../engine/chain';
 import { fft } from '../engine/dsp';
 import { COLORS } from './canvas';
 
@@ -6,11 +7,11 @@ export const N = 8192; // 8,2 s a 1 kHz: resolución de 0,12 Hz
 const UPDATE_MS = 100;
 const SMOOTHING = 0.35; // peso de cada espectro nuevo en el promedio
 
-// Series que se analizan: la referencia, la salida del amplificador (antes
-// de los filtros), la salida y el ruido solo (salida − referencia).
-export type Series = 'clean' | 'amp' | 'out' | 'diff';
-const SERIES: Series[] = ['clean', 'amp', 'out', 'diff'];
-const TAPS: Record<Exclude<Series, 'diff'>, TestPoint> = { clean: 'clean', amp: 'amp', out: 'out' };
+// Series que se analizan: la referencia y, por rama, la salida del
+// amplificador (antes de los filtros), la salida y el ruido solo
+// (salida − referencia).
+export type Series = 'clean' | `${'amp' | 'out' | 'diff'}_${Branch}`;
+const SERIES: Series[] = ['clean', ...BRANCHES.flatMap((b) => [`amp_${b}`, `out_${b}`, `diff_${b}`] as Series[])];
 
 const HANN = (() => {
   const w = new Float64Array(N);
@@ -37,7 +38,6 @@ function powerSpectrum(x: Float32Array, re: Float64Array, im: Float64Array, out:
 // 100 ms aunque lo pidan varias vistas.
 export class Analyzer {
   readonly avg = Object.fromEntries(SERIES.map((s) => [s, new Float64Array(N / 2)])) as Record<Series, Float64Array>;
-  snr = NaN;
   private last = -Infinity;
   private primed = false;
   private x = Object.fromEntries(SERIES.map((s) => [s, new Float32Array(N)])) as Record<Series, Float32Array>;
@@ -55,17 +55,14 @@ export class Analyzer {
     if (now - this.last < UPDATE_MS) return;
     this.last = now;
     const { x } = this;
-    for (const s of ['clean', 'amp', 'out'] as const) this.engine.copyLatest(x[s], TAPS[s]);
-    let pClean = 0;
-    let pNoise = 0;
-    for (let i = 0; i < N; i++) {
-      x.diff[i] = x.out[i] - x.clean[i];
-      pClean += x.clean[i] * x.clean[i];
-      pNoise += x.diff[i] * x.diff[i];
+    this.engine.copyLatest(x.clean, 'clean');
+    for (const b of BRANCHES) {
+      const out = x[`out_${b}`];
+      const diff = x[`diff_${b}`];
+      this.engine.copyLatest(x[`amp_${b}`], 'amp', b);
+      this.engine.copyLatest(out, 'out', b);
+      for (let i = 0; i < N; i++) diff[i] = out[i] - x.clean[i];
     }
-    // Relación señal/ruido de la ventana: potencia del ECG sobre potencia
-    // de todo lo que la salida tiene de distinto.
-    this.snr = pNoise > 0 ? 10 * Math.log10(pClean / pNoise) : Infinity;
 
     const a = this.primed ? SMOOTHING : 1;
     for (const s of SERIES) {

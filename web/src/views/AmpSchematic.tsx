@@ -26,7 +26,7 @@ export function Res({ x1, y1, x2, y2, hot }: { x1: number; y1: number; x2: numbe
 
 // Op-amp: triángulo con la entrada superior en (x, y-15) y la inferior en
 // (x, y+15); salida en (x+60, y).
-function OpAmp({ x, y, topPlus, label }: { x: number; y: number; topPlus: boolean; label: string }) {
+export function OpAmp({ x, y, topPlus, label }: { x: number; y: number; topPlus: boolean; label: string }) {
   return (
     <g>
       <path d={`M${x} ${y - 30}L${x} ${y + 30}L${x + 60} ${y}Z`} />
@@ -37,7 +37,7 @@ function OpAmp({ x, y, topPlus, label }: { x: number; y: number; topPlus: boolea
   );
 }
 
-const Dot = ({ x, y }: { x: number; y: number }) => <circle className="sch-dot" cx={x} cy={y} r={2.6} />;
+export const Dot = ({ x, y }: { x: number; y: number }) => <circle className="sch-dot" cx={x} cy={y} r={2.6} />;
 
 // Esquema del amplificador de instrumentación de tres op-amps con los
 // valores actuales. Rg (la perilla de ganancia) va resaltada.

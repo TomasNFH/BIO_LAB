@@ -1,111 +1,112 @@
 import type { BioEngine } from '../engine/BioEngine';
-import { cutoff, rcResponse, type RcKind, type RcSettings } from '../engine/filters';
+import type { Branch, ChainSettings } from '../engine/chain';
+import { cutoff, filterResponse, notchResponse } from '../engine/filters';
 import { hz } from '../components/units';
-import { COLORS, useCanvasLoop } from './canvas';
+import { BRANCH_COLORS, COLORS, useCanvasLoop } from './canvas';
 import { drawFreqGrid, forEachColumn, getAnalyzer, logAxis } from './spectrum';
 
 const AXIS = logAxis(0.01, 500);
 const DB_MIN = -60;
 const DB_MAX = 6;
-const PHASE = 90; // la fase va de −90° a +90°
 const SPLIT = 0.64; // fracción de alto para el módulo; el resto, la fase
 // Por debajo de esta potencia (mV²) antes de los filtros no hay con qué medir.
 const MIN_POWER = 1e-12;
 
-// Diagrama de Bode de los filtros: módulo arriba y fase abajo. Las líneas
-// son la respuesta calculada de cada filtro y de los dos en cascada; los
-// puntos, la respuesta medida sobre la señal real: el espectro de la
-// salida dividido por el de antes de los filtros.
-export function BodeView({ engine, hp, lp }: { engine: BioEngine; hp: RcSettings; lp: RcSettings }) {
+type Resp = { mag: number; phase: number };
+// Fase llevada a (−180°, 180°].
+const wrap = (deg: number) => deg - 360 * Math.ceil((deg - 180) / 360);
+
+// Diagrama de Bode de los filtros de una rama: módulo arriba y fase abajo.
+// Las líneas son la respuesta calculada de cada filtro y de todos en
+// cascada; los puntos, la respuesta medida sobre la señal real: el
+// espectro de la salida dividido por el de antes de los filtros.
+export function BodeView({ engine, branch, settings }: { engine: BioEngine; branch: Branch; settings: ChainSettings }) {
+  const { hp, lp, notch } = settings;
   const ref = useCanvasLoop((g, w, h) => {
     const fs = engine.fs;
     const hMag = Math.round(h * SPLIT);
     const magY = (db: number) => ((DB_MAX - db) / (DB_MAX - DB_MIN)) * (hMag - 8) + 4;
-    const phaseY = (deg: number) => hMag + 10 + ((PHASE - deg) / (2 * PHASE)) * (h - hMag - 24);
+    const phaseY = (deg: number) => hMag + 10 + ((180 - deg) / 360) * (h - hMag - 24);
 
     drawFreqGrid(g, AXIS, w, 0, h);
     g.font = '10px system-ui, sans-serif';
-    for (let db = 0; db >= DB_MIN; db -= 10) {
-      const y = Math.round(magY(db)) + 0.5;
-      g.strokeStyle = db === 0 ? COLORS.gridStrong : COLORS.grid;
+    const hline = (y: number, strong: boolean) => {
+      g.strokeStyle = strong ? COLORS.gridStrong : COLORS.grid;
       g.beginPath();
-      g.moveTo(0, y);
-      g.lineTo(w, y);
+      g.moveTo(0, Math.round(y) + 0.5);
+      g.lineTo(w, Math.round(y) + 0.5);
       g.stroke();
+    };
+    for (let db = 0; db >= DB_MIN; db -= 10) {
+      hline(magY(db), db === 0);
       g.fillStyle = COLORS.label;
-      g.fillText(`${db} dB`, 3, y - 3);
+      g.fillText(`${db} dB`, 3, magY(db) - 3);
     }
     // −3 dB: donde se define la frecuencia de corte.
-    g.strokeStyle = COLORS.gridStrong;
     g.setLineDash([2, 4]);
-    g.beginPath();
-    g.moveTo(0, Math.round(magY(-3)) + 0.5);
-    g.lineTo(w, Math.round(magY(-3)) + 0.5);
-    g.stroke();
+    hline(magY(-3), true);
     g.setLineDash([]);
-    for (const deg of [90, 45, 0, -45, -90]) {
-      const y = Math.round(phaseY(deg)) + 0.5;
-      g.strokeStyle = deg === 0 ? COLORS.gridStrong : COLORS.grid;
-      g.beginPath();
-      g.moveTo(0, y);
-      g.lineTo(w, y);
-      g.stroke();
-      g.fillText(`${deg}°`, 3, y - 3);
+    for (const deg of [180, 90, 0, -90, -180]) {
+      hline(phaseY(deg), deg === 0);
+      g.fillText(`${deg}°`, 3, phaseY(deg) - 3);
     }
-    g.strokeStyle = COLORS.gridStrong;
-    g.beginPath();
-    g.moveTo(0, hMag + 0.5);
-    g.lineTo(w, hMag + 0.5);
-    g.stroke();
+    hline(hMag, true);
 
     // Curvas calculadas, evaluadas en cada columna de píxel.
-    const curve = (resp: (f: number) => { mag: number; phase: number }, color: string, width: number, dash: number[]) => {
+    const curve = (resp: (f: number) => Resp, color: string, width: number, dash: number[]) => {
       g.strokeStyle = color;
       g.lineWidth = width;
       g.setLineDash(dash);
       for (const part of ['mag', 'phase'] as const) {
         g.beginPath();
+        let prevY = NaN;
         for (let x = 0; x <= w; x++) {
           const f = AXIS.fMin * Math.pow(AXIS.fMax / AXIS.fMin, x / w);
           const r = resp(f);
           const y =
             part === 'mag'
               ? Math.min(hMag, Math.max(0, magY(20 * Math.log10(r.mag + 1e-12))))
-              : phaseY(r.phase);
-          if (x === 0) g.moveTo(x, y);
+              : phaseY(wrap(r.phase));
+          // La fase salta de +180° a −180°: no unir esos puntos.
+          if (x === 0 || (part === 'phase' && Math.abs(y - prevY) > (h - hMag) / 2)) g.moveTo(x, y);
           else g.lineTo(x, y);
+          prevY = y;
         }
         g.stroke();
       }
       g.setLineDash([]);
     };
-    const both = (f: number) => {
-      const a = rcResponse('hp', hp, f, fs);
-      const b = rcResponse('lp', lp, f, fs);
-      return { mag: a.mag * b.mag, phase: a.phase + b.phase };
+    const hpR = (f: number) => filterResponse('hp', hp, f, fs);
+    const lpR = (f: number) => filterResponse('lp', lp, f, fs);
+    const notchR = (f: number) => notchResponse(notch, f, fs);
+    const all = (f: number): Resp => {
+      const parts = [hpR(f), lpR(f), notchR(f)];
+      return {
+        mag: parts.reduce((m, p) => m * p.mag, 1),
+        phase: parts.reduce((s, p) => s + p.phase, 0),
+      };
     };
-    if (hp.on) curve((f) => rcResponse('hp', hp, f, fs), COLORS.hp, 1.2, [5, 4]);
-    if (lp.on) curve((f) => rcResponse('lp', lp, f, fs), COLORS.lp, 1.2, [5, 4]);
-    curve(both, COLORS.trace, 1.8, []);
+    if (hp.on) curve(hpR, COLORS.hp, 1.2, [5, 4]);
+    if (lp.on) curve(lpR, COLORS.lp, 1.2, [5, 4]);
+    if (notch.on) curve(notchR, COLORS.notch, 1.2, [5, 4]);
+    curve(all, BRANCH_COLORS[branch], 1.8, []);
 
     // Marcas en cada frecuencia de corte.
-    const marks: [RcKind, RcSettings, string][] = [
-      ['hp', hp, 'PA'],
-      ['lp', lp, 'PB'],
-    ];
     g.font = '600 11px system-ui, sans-serif';
-    for (const [kind, s, name] of marks) {
-      if (!s.on) continue;
-      const fc = cutoff(s);
-      if (fc < AXIS.fMin || fc > AXIS.fMax) continue;
+    const marks: [boolean, number, string, string, number][] = [
+      [hp.on, cutoff(hp), 'PA', COLORS.hp, 16],
+      [lp.on, cutoff(lp), 'PB', COLORS.lp, -8],
+    ];
+    for (const [on, fc, name, color, dy] of marks) {
+      if (!on || fc < AXIS.fMin || fc > AXIS.fMax) continue;
       const x = AXIS.toX(fc, w);
-      g.fillStyle = kind === 'hp' ? COLORS.hp : COLORS.lp;
+      g.fillStyle = color;
       g.beginPath();
       g.arc(x, magY(-3), 3.5, 0, 2 * Math.PI);
       g.fill();
-      const label = `fc ${name} ${hz(fc)}`;
-      g.textAlign = x > w - 90 ? 'right' : 'left';
-      g.fillText(label, x + (x > w - 90 ? -6 : 6), magY(-3) + (kind === 'hp' ? 16 : -8));
+      const right = x > w - 90;
+      g.textAlign = right ? 'right' : 'left';
+      g.fillText(`fc ${name} ${hz(fc)}`, x + (right ? -6 : 6), magY(-3) + dy);
       g.textAlign = 'left';
     }
 
@@ -113,17 +114,19 @@ export function BodeView({ engine, hp, lp }: { engine: BioEngine; hp: RcSettings
     // los filtros, columna por columna.
     const an = getAnalyzer(engine);
     an.update();
+    const pAmp = an.avg[`amp_${branch}`];
+    const pOut = an.avg[`out_${branch}`];
     g.fillStyle = COLORS.measured;
-    forEachColumn(AXIS, w, an.df, an.avg.out.length, (x, k0, k1) => {
-      let pIn = 0;
-      let pOut = 0;
+    forEachColumn(AXIS, w, an.df, pOut.length, (x, k0, k1) => {
+      let pi = 0;
+      let po = 0;
       for (let k = k0; k < k1; k++) {
-        pIn += an.avg.amp[k];
-        pOut += an.avg.out[k];
+        pi += pAmp[k];
+        po += pOut[k];
       }
-      if (pIn < MIN_POWER * (k1 - k0)) return;
+      if (pi < MIN_POWER * (k1 - k0)) return;
       if (x % 3) return; // un punto cada 3 px para que no tape la curva
-      const y = magY(10 * Math.log10(pOut / pIn));
+      const y = magY(10 * Math.log10(po / pi));
       if (y < 0 || y > hMag) return;
       g.fillRect(x - 1, y - 1, 2.2, 2.2);
     });

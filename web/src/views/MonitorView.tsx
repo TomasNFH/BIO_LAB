@@ -1,15 +1,17 @@
 import type { BioEngine } from '../engine/BioEngine';
+import type { Branch } from '../engine/chain';
 import { dec } from '../components/Knob';
-import { COLORS, useCanvasLoop } from './canvas';
+import { BRANCH_COLORS, COLORS, useCanvasLoop } from './canvas';
 
 export type MonitorOptions = {
   speed: number; // velocidad de barrido, mm/s
   gain: number; // mm por mV
   labels: boolean; // marcar P, Q, R, S, T
   reference: boolean; // superponer la referencia limpia
+  other: boolean; // superponer la otra rama
 };
 
-export const DEFAULT_MONITOR: MonitorOptions = { speed: 25, gain: 10, labels: true, reference: true };
+export const DEFAULT_MONITOR: MonitorOptions = { speed: 25, gain: 10, labels: true, reference: true, other: false };
 
 // Escala de la cuadrícula: píxeles CSS por milímetro de "papel".
 const PX_PER_MM = 4;
@@ -19,9 +21,11 @@ const GAP_PX = 24;
 // Monitor de barrido con cuadrícula de papel ECG: cuadros chicos de 1 mm,
 // grandes de 5 mm. El trazo se escribe de izquierda a derecha y vuelve a
 // empezar, borrando lo viejo justo delante del cursor.
-export function MonitorView({ engine, options }: { engine: BioEngine; options: MonitorOptions }) {
+export function MonitorView({ engine, options, branch }: { engine: BioEngine; options: MonitorOptions; branch: Branch }) {
   const ref = useCanvasLoop((g, w, h) => {
-    const { speed, gain, labels, reference } = options;
+    const { speed, gain, labels, reference, other } = options;
+    const otherBranch: Branch = branch === 'a' ? 'b' : 'a';
+    const color = BRANCH_COLORS[branch];
     const pxPerSec = PX_PER_MM * speed;
     const pxPerMv = PX_PER_MM * gain;
     const span = w / pxPerSec; // segundos que entran en pantalla
@@ -53,13 +57,14 @@ export function MonitorView({ engine, options }: { engine: BioEngine; options: M
       g.stroke();
     };
     if (reference) trace((i) => engine.cleanAt(i), COLORS.reference, 1.2);
-    trace((i) => engine.sampleAt(i), COLORS.trace, 1.6);
+    if (other) trace((i) => engine.sampleAt(i, otherBranch), BRANCH_COLORS[otherBranch], 1.2);
+    trace((i) => engine.sampleAt(i, branch), color, 1.6);
 
     // Punto brillante en la cabeza del trazo.
     if (end > start) {
       g.fillStyle = COLORS.traceHead;
       g.beginPath();
-      g.arc(xOf(end - 1), yOf(engine.sampleAt(end - 1)), 3, 0, 2 * Math.PI);
+      g.arc(xOf(end - 1), yOf(engine.sampleAt(end - 1, branch)), 3, 0, 2 * Math.PI);
       g.fill();
     }
 
@@ -73,7 +78,7 @@ export function MonitorView({ engine, options }: { engine: BioEngine; options: M
           const i = Math.round(wave.t * fs);
           if (i < start || i >= end) continue;
           const up = wave.a > 0;
-          const y = yOf(engine.sampleAt(i)) + (up ? -8 : 16);
+          const y = yOf(engine.sampleAt(i, branch)) + (up ? -8 : 16);
           // Q y S están muy cerca del R: se corren a los costados.
           const dx = wave.name === 'Q' ? -6 : wave.name === 'S' ? 6 : 0;
           g.fillText(wave.name, xOf(i) + dx, y);
@@ -87,12 +92,13 @@ export function MonitorView({ engine, options }: { engine: BioEngine; options: M
     g.fillStyle = COLORS.label;
     g.fillText(`${dec(speed, speed % 1 ? 1 : 0)} mm/s · ${gain} mm/mV`, 8, h - 8);
     g.font = '600 15px system-ui, sans-serif';
-    g.fillStyle = COLORS.trace;
+    g.fillStyle = color;
     g.textAlign = 'right';
-    g.fillText(`FC ${dec(engine.ecg.bpmAt(now), 0)} lpm`, w - 10, 22);
+    g.fillText(`Rama ${branch.toUpperCase()} · FC ${dec(engine.ecg.bpmAt(now), 0)} lpm`, w - 10, 22);
 
     // Aviso de saturación del amplificador (en el último medio segundo).
-    if (engine.amp.on && engine.amp.saturatedWithin(fs / 2)) {
+    const amp = engine.chains[branch].amp;
+    if (amp.on && amp.saturatedWithin(fs / 2)) {
       g.font = '600 13px system-ui, sans-serif';
       g.fillStyle = COLORS.danger;
       g.textAlign = 'left';
@@ -103,7 +109,7 @@ export function MonitorView({ engine, options }: { engine: BioEngine; options: M
     // Si la señal se va de la pantalla (por ejemplo con offset de
     // continua), avisar hacia dónde y cuánto vale.
     if (end > start) {
-      const v = engine.sampleAt(end - 1);
+      const v = engine.sampleAt(end - 1, branch);
       const y = yOf(v);
       if (y < 0 || y > h) {
         g.font = '600 13px system-ui, sans-serif';

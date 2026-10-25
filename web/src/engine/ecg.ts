@@ -4,9 +4,10 @@ export type EcgSettings = {
   bpm: number; // frecuencia cardíaca media, latidos por minuto
   hrv: number; // variabilidad del intervalo RR, fracción (0.03 = 3 %)
   amplitude: number; // escala de todas las ondas; 1 = onda R de 1 mV
+  st: number; // desnivel del segmento ST en mV (+ elevado, − deprimido)
 };
 
-export const DEFAULT_ECG: EcgSettings = { bpm: 72, hrv: 0.03, amplitude: 1 };
+export const DEFAULT_ECG: EcgSettings = { bpm: 72, hrv: 0.03, amplitude: 1, st: 0 };
 
 export type WaveName = 'P' | 'Q' | 'R' | 'S' | 'T';
 
@@ -28,6 +29,10 @@ export const WAVES: Wave[] = [
   { name: 'S', a: -0.25, mu: 0.028, sigma: 0.01, scales: false },
   { name: 'T', a: 0.3, mu: 0.3, sigma: 0.06, scales: true },
 ];
+
+// Punto J (fin del QRS) y centro de la T respecto del R, en s.
+const J_POINT = 0.045;
+const T_MU = WAVES.find((w) => w.name === 'T')!.mu;
 
 // Hasta dónde llega un latido a cada lado de su pico R, en s (P y T con
 // RR largo, más 4 sigmas).
@@ -71,10 +76,18 @@ export class EcgSource {
       for (const w of WAVES) {
         const s = w.scales ? k : 1;
         const d = (t - (beat.r + w.mu * s)) / (w.sigma * s);
-        v += w.a * Math.exp(-0.5 * d * d);
+        v += w.a * Math.exp(-0.5 * d * d) * amp;
+      }
+      // Segmento ST: una meseta desde el punto J (fin del QRS) que se funde
+      // con la onda T. En un infarto o una isquemia queda elevado o
+      // deprimido respecto de la línea de base.
+      if (this.settings.st !== 0) {
+        const rise = 1 / (1 + Math.exp(-(t - (beat.r + J_POINT)) / 0.006));
+        const fall = 1 / (1 + Math.exp(-(beat.r + T_MU * k - t) / 0.03));
+        v += this.settings.st * rise * fall;
       }
     }
-    return v * amp;
+    return v;
   }
 
   // Latidos con pico R entre t0 y t1.

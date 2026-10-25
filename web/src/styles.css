@@ -159,14 +159,39 @@ select { min-width: 220px; flex: 1; }
 .tabs { display: flex; gap: 4px; flex-wrap: wrap; }
 .tab { padding: 5px 12px; font-size: 0.85rem; background: transparent; border-color: transparent; color: var(--muted); }
 .tab.on { background: #2a2d35; border-color: var(--border); color: var(--text); }
-.swatch.before { background: #6fa8ff; }
+.swatch.before, .swatch.hp { background: #e6c75a; }
 .swatch.lp { background: #c792ea; }
 .swatch.measured { background: #f2f2f2; width: 4px; height: 4px; }
 .swatch.dashed { background: repeating-linear-gradient(90deg, currentColor 0 5px, transparent 5px 8px); }
-.swatch.before.dashed { color: #6fa8ff; }
+.swatch.hp.dashed { color: #e6c75a; }
+.swatch.notch { background: #ff79c6; }
+.swatch.notch.dashed { color: #ff79c6; }
+.swatch.branch-a { background: var(--accent); }
+.swatch.branch-b { background: #6fa8ff; }
 .swatch.lp.dashed { color: #c792ea; }
 .view-canvas.stages { height: 360px; }
 .schematic.rc { max-width: 300px; }
 @media (min-width: 1000px) {
   .view-canvas.stages { height: 300px; }
 }
+
+/* Ramas A y B: verde y azul. */
+.branch-seg button.a.on { background: var(--accent); color: #102010; font-weight: 600; }
+.branch-seg button.b.on { background: #6fa8ff; color: #0d1a2e; font-weight: 600; }
+.branch-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+.branch-dot.a { background: var(--accent); }
+.branch-dot.b { background: #6fa8ff; }
+.switch-rows { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; margin-bottom: 4px; }
+.schematic.sk, .schematic.notch { max-width: 340px; }
+
+/* Métricas de las dos ramas. */
+.metrics { overflow-x: auto; margin-top: 12px; }
+.metrics table { width: 100%; border-collapse: collapse; font-size: 0.82rem; font-variant-numeric: tabular-nums; }
+.metrics th { text-align: left; font-weight: 500; color: var(--muted); font-size: 0.74rem; padding: 4px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.metrics td { padding: 5px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+
+/* Perillas chicas (paneles de ruido, amplificador y filtros). */
+.knob.small { width: 82px; }
+.knob-label { text-align: center; }
+.knob.small .knob-dial { width: 40px; height: 40px; }
+.knob.small .knob-pointer::after { top: 3px; height: 10px; }

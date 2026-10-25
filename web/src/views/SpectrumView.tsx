@@ -1,31 +1,35 @@
 import type { BioEngine } from '../engine/BioEngine';
-import { dec } from '../components/Knob';
-import { COLORS, useCanvasLoop } from './canvas';
+import type { Branch } from '../engine/chain';
+import { BRANCH_COLORS, COLORS, useCanvasLoop } from './canvas';
 import { drawFreqGrid, forEachColumn, getAnalyzer, logAxis } from './spectrum';
 
 export type SpectrumOptions = {
   reference: boolean; // mostrar el espectro de la referencia limpia
   noise: boolean; // mostrar el espectro del ruido (salida − referencia)
   beforeFilters: boolean; // mostrar el espectro antes de los filtros
+  other: boolean; // mostrar también la salida de la otra rama
 };
 
-export const DEFAULT_SPECTRUM: SpectrumOptions = { reference: true, noise: false, beforeFilters: false };
+export const DEFAULT_SPECTRUM: SpectrumOptions = { reference: true, noise: false, beforeFilters: false, other: true };
 
 const AXIS = logAxis(0.1, 500);
 const DB_MIN = -90;
 const DB_MAX = 10;
 const dbToY = (db: number, h: number) => ((DB_MAX - db) / (DB_MAX - DB_MIN)) * h;
 
-// Espectro de la salida de la cadena en verde, la referencia limpia en
-// gris y, si se piden, el ruido solo en naranja y la señal antes de los
-// filtros en azul. Eje de frecuencia logarítmico de 0,1 a 500 Hz.
+// Espectro de la salida de la rama elegida (en su color), la referencia
+// limpia en gris y, si se piden, la salida de la otra rama, el ruido solo
+// en naranja y la señal antes de los filtros en amarillo. Eje de
+// frecuencia logarítmico de 0,1 a 500 Hz.
 export function SpectrumView({
   engine,
   options,
   band,
+  branch,
 }: {
   engine: BioEngine;
   options: SpectrumOptions;
+  branch: Branch;
   band: [number, number] | null; // banda resaltada (el ruido bajo el cursor)
 }) {
   const ref = useCanvasLoop((g, w, h) => {
@@ -71,17 +75,13 @@ export function SpectrumView({
       g.stroke();
     };
 
+    const other: Branch = branch === 'a' ? 'b' : 'a';
     if (options.reference) curve(an.avg.clean, COLORS.reference, 1.2);
-    if (options.beforeFilters) curve(an.avg.amp, COLORS.before, 1.2);
-    curve(an.avg.out, COLORS.trace, 1.5);
-    if (options.noise) curve(an.avg.diff, COLORS.noise, 1.2);
+    if (options.beforeFilters) curve(an.avg[`amp_${branch}`], COLORS.before, 1.2);
+    if (options.other) curve(an.avg[`out_${other}`], BRANCH_COLORS[other], 1.2);
+    curve(an.avg[`out_${branch}`], BRANCH_COLORS[branch], 1.5);
+    if (options.noise) curve(an.avg[`diff_${branch}`], COLORS.noise, 1.2);
 
-    g.font = '600 13px system-ui, sans-serif';
-    g.textAlign = 'right';
-    g.fillStyle = COLORS.trace;
-    const snr = Number.isFinite(an.snr) ? `${dec(an.snr, 1)} dB` : '∞';
-    g.fillText(`SNR ${snr}`, w - 10, 20);
-    g.textAlign = 'left';
   });
 
   return <canvas ref={ref} className="view-canvas spectrum" aria-label="Espectro de la señal" />;

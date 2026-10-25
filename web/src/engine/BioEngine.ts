@@ -1,6 +1,5 @@
+import { BRANCHES, Chain, DEFAULT_BRANCHES, type Branch, type ChainSettings } from './chain';
 import { DEFAULT_ECG, EcgSource, type EcgSettings } from './ecg';
-import { DEFAULT_AMP, InstrumentationAmp, type AmpSettings } from './amp';
-import { DEFAULT_HP, DEFAULT_LP, RcFilter, type RcSettings } from './filters';
 import { DEFAULT_NOISE, NoiseSource, type NoiseSettings } from './noise';
 
 export const FS = 1000; // frecuencia de muestreo, Hz
@@ -10,16 +9,25 @@ const MAX_STEP = 0.1;
 
 export type EngineState = { playing: boolean };
 
-// Puntos de prueba de la cadena, en orden. Todos en mV referidos a la
-// entrada.
-export type TestPoint = 'clean' | 'input' | 'amp' | 'hp' | 'out';
-export const TEST_POINTS: TestPoint[] = ['clean', 'input', 'amp', 'hp', 'out'];
+// Puntos de prueba, en orden. Los dos primeros son comunes a las dos ramas;
+// el resto existe una vez por rama. Todos en mV referidos a la entrada.
+export type SharedPoint = 'clean' | 'input';
+export type BranchPoint = 'amp' | 'hp' | 'lp' | 'out';
+export type TestPoint = SharedPoint | BranchPoint;
+const BRANCH_POINTS: BranchPoint[] = ['amp', 'hp', 'lp', 'out'];
+const isShared = (p: TestPoint): p is SharedPoint => p === 'clean' || p === 'input';
+
+const makeBuffer = () => new Float32Array(FS * BUFFER_SECONDS);
 
 // Genera la señal en tiempo real fuera de React: en cada cuadro produce
 // las muestras del tiempo transcurrido y las guarda en búferes circulares
-// que las vistas leen. Guarda la señal en cada punto de prueba: la
-// referencia limpia (el ECG solo), la entrada diferencial, la salida del
-// amplificador, la del pasa altos y la del pasa bajos (la salida). Como el
+// que las vistas leen. La misma entrada (ECG más ruido) alimenta dos
+// cadenas completas, A y B, para comparar ajustes distintos sobre
+// exactamente la misma señal.
+//
+// Guarda la señal en cada punto de prueba: la referencia limpia (el ECG
+// solo), la entrada diferencial y, por rama, la salida del amplificador,
+// del pasa altos, del pasa bajos y del notch (la salida). Como el
 // laboratorio conoce la referencia, puede medir cuánto se aleja la salida
 // de ella.
 //
@@ -31,12 +39,14 @@ export class BioEngine {
   readonly fs = FS;
   readonly ecg = new EcgSource(DEFAULT_ECG);
   readonly noise = new NoiseSource(FS, DEFAULT_NOISE);
-  readonly amp = new InstrumentationAmp(DEFAULT_AMP);
-  readonly hp = new RcFilter('hp', FS, DEFAULT_HP);
-  readonly lp = new RcFilter('lp', FS, DEFAULT_LP);
+  readonly chains: Record<Branch, Chain> = {
+    a: new Chain(FS, DEFAULT_BRANCHES.a),
+    b: new Chain(FS, DEFAULT_BRANCHES.b),
+  };
+  private shared: Record<SharedPoint, Float32Array> = { clean: makeBuffer(), input: makeBuffer() };
   private taps = Object.fromEntries(
-    TEST_POINTS.map((p) => [p, new Float32Array(FS * BUFFER_SECONDS)]),
-  ) as Record<TestPoint, Float32Array>;
+    BRANCHES.map((b) => [b, Object.fromEntries(BRANCH_POINTS.map((p) => [p, makeBuffer()]))]),
+  ) as Record<Branch, Record<BranchPoint, Float32Array>>;
   private count = 0; // muestras generadas desde el inicio
   private carry = 0; // fracción de muestra pendiente
   private playing = false;
@@ -59,28 +69,33 @@ export class BioEngine {
 
   // Índice de la muestra más vieja que sigue en el búfer.
   get oldest() {
-    return Math.max(0, this.count - this.taps.out.length);
+    return Math.max(0, this.count - this.shared.clean.length);
   }
 
-  // Muestra i de la salida, en mV.
-  sampleAt(i: number) {
-    return this.taps.out[i % this.taps.out.length];
+  private buffer(point: TestPoint, branch: Branch) {
+    return isShared(point) ? this.shared[point] : this.taps[branch][point];
+  }
+
+  // Muestra i de la salida de una rama, en mV.
+  sampleAt(i: number, branch: Branch = 'a') {
+    const buf = this.taps[branch].out;
+    return buf[i % buf.length];
   }
 
   // Muestra i de la referencia limpia, en mV.
   cleanAt(i: number) {
-    return this.taps.clean[i % this.taps.clean.length];
+    return this.shared.clean[i % this.shared.clean.length];
   }
 
   // Muestra i de un punto de prueba, en mV.
-  tapAt(point: TestPoint, i: number) {
-    const buf = this.taps[point];
+  tapAt(point: TestPoint, i: number, branch: Branch = 'a') {
+    const buf = this.buffer(point, branch);
     return buf[i % buf.length];
   }
 
   // Copia las últimas dest.length muestras (con ceros si todavía no hay).
-  copyLatest(dest: Float32Array, which: TestPoint) {
-    const src = this.taps[which];
+  copyLatest(dest: Float32Array, point: TestPoint, branch: Branch = 'a') {
+    const src = this.buffer(point, branch);
     const n = dest.length;
     const start = this.count - n;
     for (let k = 0; k < n; k++) {
@@ -97,16 +112,8 @@ export class BioEngine {
     this.noise.set(settings);
   }
 
-  setAmp(settings: AmpSettings) {
-    this.amp.set(settings);
-  }
-
-  setHp(settings: RcSettings) {
-    this.hp.set(settings);
-  }
-
-  setLp(settings: RcSettings) {
-    this.lp.set(settings);
+  setChain(branch: Branch, settings: ChainSettings) {
+    this.chains[branch].set(settings);
   }
 
   play() {
@@ -141,8 +148,8 @@ export class BioEngine {
     const exact = seconds * FS + this.carry;
     const n = Math.floor(exact);
     this.carry = exact - n;
-    const { clean: tClean, input: tInput, amp: tAmp, hp: tHp, out: tOut } = this.taps;
-    const len = tOut.length;
+    const { clean: tClean, input: tInput } = this.shared;
+    const len = tClean.length;
     for (let i = 0; i < n; i++) {
       const t = this.count / FS;
       const j = this.count % len;
@@ -150,18 +157,17 @@ export class BioEngine {
       // Tensión diferencial entre los electrodos y modo común, en mV.
       const vd = clean + this.noise.sample(t);
       const vcm = this.noise.common;
-      let amp = vd;
-      if (this.amp.on) {
-        const vo = this.amp.process((vcm + vd / 2) / 1000, (vcm - vd / 2) / 1000);
-        amp = (vo * 1000) / this.amp.gain;
-      }
-      const hp = this.hp.process(amp);
-      const out = this.lp.process(hp);
       tClean[j] = clean;
       tInput[j] = vd;
-      tAmp[j] = amp;
-      tHp[j] = hp;
-      tOut[j] = out;
+      for (const b of BRANCHES) {
+        const chain = this.chains[b];
+        const taps = this.taps[b];
+        chain.process(vd, vcm);
+        taps.amp[j] = chain.ampOut;
+        taps.hp[j] = chain.hpOut;
+        taps.lp[j] = chain.lpOut;
+        taps.out[j] = chain.out;
+      }
       this.count++;
     }
     this.ecg.prune(this.time - BUFFER_SECONDS);

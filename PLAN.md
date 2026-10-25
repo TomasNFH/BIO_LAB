@@ -118,6 +118,11 @@ rechaza según su CMRR.
 Cada filtro dibuja su diagrama de Bode (módulo y fase) y su esquema con los
 valores de los componentes.
 
+El pasa banda no es un bloque aparte: es el pasa altos y el pasa bajos en
+cascada, con botones para fijar las dos bandas típicas a la vez. El
+Sallen-Key usa R y C como valores base y separa cada par para dar el Q de
+la respuesta elegida, sin mover fc.
+
 ### ADC
 
 - Frecuencia de muestreo (100 Hz – 2 kHz), resolución (8–24 bits), rango.
@@ -132,7 +137,7 @@ valores de los componentes.
 | Etapas | ¿Qué hizo cada bloque? | Señal en cada punto de prueba de la cadena, apiladas |
 | Espectro | ¿En qué frecuencias está la señal y el ruido? | FFT con eje log 0,05–500 Hz, antes y después |
 | Bode | ¿Qué hace este filtro solo? | Módulo y fase de la función de transferencia |
-| Métricas | ¿Cuánto mejoró? | SNR de entrada y de salida, error RMS contra la referencia, distorsión del ST |
+| Métricas | ¿Cuánto mejoró? | Por rama: retardo, SNR, error eficaz, altura de la R y ST medido contra el real. Antes de comparar se alinea la salida en su retardo y se quita la media, porque ni el retardo ni la continua son deformación |
 
 Igual que en Tone Lab: antes y después siempre en la misma escala para que
 la comparación sea honesta.

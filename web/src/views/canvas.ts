@@ -81,8 +81,13 @@ export const COLORS = {
   danger: '#f26b5b',
   noise: '#f0a848',
   highlight: 'rgba(240, 168, 72, 0.12)',
-  before: '#6fa8ff', // antes de los filtros
-  hp: '#6fa8ff',
+  before: '#e6c75a', // antes de los filtros
+  hp: '#e6c75a',
   lp: '#c792ea',
+  notch: '#ff79c6',
+  branchB: '#6fa8ff',
   measured: '#f2f2f2',
 };
+
+// Color de cada rama: A verde, B azul.
+export const BRANCH_COLORS = { a: COLORS.trace, b: COLORS.branchB } as const;

@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
 import { BioEngine, type EngineState } from './engine/BioEngine';
-import { DEFAULT_AMP, type AmpSettings } from './engine/amp';
+import { BRANCHES, DEFAULT_BRANCHES, type Branch, type ChainSettings } from './engine/chain';
 import { DEFAULT_ECG, type EcgSettings } from './engine/ecg';
-import { DEFAULT_HP, DEFAULT_LP, type RcSettings } from './engine/filters';
 import { DEFAULT_NOISE, noiseBand, type NoiseId, type NoiseSettings } from './engine/noise';
 import { AmpPanel } from './components/AmpPanel';
+import { BranchBar } from './components/BranchBar';
 import { ChainStrip } from './components/ChainStrip';
 import { FilterPanel } from './components/FilterPanel';
-import { fmt, Knob } from './components/Knob';
+import { dec, fmt, Knob } from './components/Knob';
 import { Logo } from './components/Logo';
+import { MetricsTable } from './components/MetricsTable';
 import { NoisePanel } from './components/NoisePanel';
+import { NotchPanel } from './components/NotchPanel';
 import { DEFAULT_MONITOR, MonitorView, type MonitorOptions } from './views/MonitorView';
 import { BodeView } from './views/BodeView';
 import { DEFAULT_SPECTRUM, SpectrumView, type SpectrumOptions } from './views/SpectrumView';
@@ -45,9 +47,9 @@ export function App() {
   const [ecg, setEcg] = useState<EcgSettings>(DEFAULT_ECG);
   const [noise, setNoise] = useState<NoiseSettings>(DEFAULT_NOISE);
   const [focusNoise, setFocusNoise] = useState<NoiseId | null>(null);
-  const [amp, setAmp] = useState<AmpSettings>(DEFAULT_AMP);
-  const [hp, setHp] = useState<RcSettings>(DEFAULT_HP);
-  const [lp, setLp] = useState<RcSettings>(DEFAULT_LP);
+  const [chains, setChains] = useState<Record<Branch, ChainSettings>>(DEFAULT_BRANCHES);
+  // La rama que se edita en los paneles y se muestra en las vistas.
+  const [branch, setBranch] = useState<Branch>('a');
   const [view, setView] = useState<ViewTab>('spectrum');
   const [stages, setStages] = useState<StagesOptions>(DEFAULT_STAGES);
   const [monitor, setMonitor] = useState<MonitorOptions>(DEFAULT_MONITOR);
@@ -61,16 +63,21 @@ export function App() {
 
   useEffect(() => eng.setEcg(ecg), [eng, ecg]);
   useEffect(() => eng.setNoise(noise), [eng, noise]);
-  useEffect(() => eng.setAmp(amp), [eng, amp]);
-  useEffect(() => eng.setHp(hp), [eng, hp]);
-  useEffect(() => eng.setLp(lp), [eng, lp]);
+  useEffect(() => {
+    for (const b of BRANCHES) eng.setChain(b, chains[b]);
+  }, [eng, chains]);
 
-  // Espacio: reproducir / pausar.
+  // Espacio: reproducir / pausar. B: cambiar de rama.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.code !== 'Space' || e.repeat) return;
+      if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
       const target = e.target as HTMLElement;
-      if (target.closest('input, select, textarea, button, [role="slider"]')) return;
+      if (target.closest('input, select, textarea')) return;
+      if (e.code === 'KeyB') {
+        setBranch((b) => (b === 'a' ? 'b' : 'a'));
+        return;
+      }
+      if (e.code !== 'Space' || target.closest('button, [role="slider"]')) return;
       e.preventDefault();
       eng.toggle();
     };
@@ -81,14 +88,18 @@ export function App() {
   const editEcg = (patch: Partial<EcgSettings>) => setEcg((s) => ({ ...s, ...patch }));
   const editMonitor = (patch: Partial<MonitorOptions>) => setMonitor((s) => ({ ...s, ...patch }));
   const editSpectrum = (patch: Partial<SpectrumOptions>) => setSpectrum((s) => ({ ...s, ...patch }));
+  const setChain = (b: Branch, s: ChainSettings) => setChains((c) => ({ ...c, [b]: s }));
+  const editChain = (patch: Partial<ChainSettings>) => setChain(branch, { ...chains[branch], ...patch });
   const band = focusNoise && noise.enabled ? noiseBand(focusNoise, noise) : null;
+  const chain = chains[branch];
+  const other = branch === 'a' ? 'B' : 'A';
 
   return (
     <div className="app">
       <header className="header">
         <Logo />
         <h1>Bio Lab</h1>
-        <span className="phase">Etapa 4: filtros RC</span>
+        <span className="phase">Etapa 5: pasa banda, notch, segundo orden y ramas A/B</span>
       </header>
 
       <ChainStrip />
@@ -98,11 +109,18 @@ export function App() {
           <section className="panel">
             <div className="panel-head">
               <h2>Monitor</h2>
+              <div className="seg branch-seg">
+                {BRANCHES.map((b) => (
+                  <button key={b} className={`${b} ${branch === b ? 'on' : ''}`} onClick={() => setBranch(b)}>
+                    {b.toUpperCase()}
+                  </button>
+                ))}
+              </div>
               <button className="primary" onClick={() => eng.toggle()}>
                 {state.playing ? 'Pausa' : 'Seguir'}
               </button>
             </div>
-            <MonitorView engine={eng} options={monitor} />
+            <MonitorView engine={eng} options={monitor} branch={branch} />
             <div className="row view-options">
               <span className="switch-label">Velocidad</span>
               <Seg
@@ -126,21 +144,26 @@ export function App() {
                 />
                 Marcar ondas
               </label>
-              <label className="check">
-                <input
-                  type="checkbox"
-                  checked={monitor.reference}
-                  onChange={(e) => editMonitor({ reference: e.target.checked })}
-                />
-                <span className="swatch ref" />
-                Referencia limpia
-              </label>
+              <Check
+                checked={monitor.reference}
+                onChange={(reference) => editMonitor({ reference })}
+                swatch="ref"
+                label="Referencia limpia"
+              />
+              <Check
+                checked={monitor.other}
+                onChange={(other) => editMonitor({ other })}
+                swatch={branch === 'a' ? 'branch-b' : 'branch-a'}
+                label={`Rama ${other}`}
+              />
             </div>
+            <MetricsTable engine={eng} />
             <p className="muted small">
               Cuadrícula de papel ECG: cada cuadro chico es 1 mm y cada grande 5 mm. A 25 mm/s un
-              cuadro grande son 0,2 s; a 10 mm/mV, dos cuadros grandes son 1 mV. En verde la salida
-              de la cadena referida a la entrada (dividida por la ganancia), en gris el ECG limpio.
-              Espacio pausa el monitor.
+              cuadro grande son 0,2 s; a 10 mm/mV, dos cuadros grandes son 1 mV. La salida está
+              referida a la entrada (dividida por la ganancia); en gris el ECG limpio. Espacio pausa
+              el monitor y B cambia de rama. Las métricas comparan cada rama con el ECG limpio en
+              los últimos 8 s.
             </p>
           </section>
 
@@ -162,11 +185,17 @@ export function App() {
             </div>
             {view === 'spectrum' && (
               <>
-                <SpectrumView engine={eng} options={spectrum} band={band} />
+                <SpectrumView engine={eng} options={spectrum} band={band} branch={branch} />
                 <div className="row view-options">
                   <span className="legend">
-                    <span className="swatch out" /> Salida
+                    <span className={`swatch branch-${branch}`} /> Rama {branch.toUpperCase()}
                   </span>
+                  <Check
+                    checked={spectrum.other}
+                    onChange={(other) => editSpectrum({ other })}
+                    swatch={branch === 'a' ? 'branch-b' : 'branch-a'}
+                    label={`Rama ${other}`}
+                  />
                   <Check
                     checked={spectrum.beforeFilters}
                     onChange={(beforeFilters) => editSpectrum({ beforeFilters })}
@@ -189,39 +218,44 @@ export function App() {
                 <p className="muted small">
                   Amplitud de cada frecuencia en los últimos 8 s, en dB respecto de 1 mV: una
                   senoidal de 1 mV marca 0 dB y una de 0,1 mV, −20 dB. El ECG ocupa de 0,5 a 40 Hz.
-                  El SNR compara la potencia del ECG con la de todo lo que la salida tiene de
-                  distinto: ruido y también la deformación que causan los filtros.
+                  El ruido solo es la salida menos el ECG limpio: incluye también la deformación
+                  y el retardo de los filtros.
                 </p>
               </>
             )}
             {view === 'bode' && (
               <>
-                <BodeView engine={eng} hp={hp} lp={lp} />
+                <BodeView engine={eng} branch={branch} settings={chain} />
                 <div className="row view-options">
                   <span className="legend">
-                    <span className="swatch out" /> Los dos filtros
+                    <span className={`swatch branch-${branch}`} /> Todos (rama {branch.toUpperCase()})
                   </span>
                   <span className="legend">
-                    <span className="swatch before dashed" /> Pasa altos
+                    <span className="swatch hp dashed" /> Pasa altos
                   </span>
                   <span className="legend">
                     <span className="swatch lp dashed" /> Pasa bajos
+                  </span>
+                  <span className="legend">
+                    <span className="swatch notch dashed" /> Notch
                   </span>
                   <span className="legend">
                     <span className="swatch measured" /> Medido
                   </span>
                 </div>
                 <p className="muted small">
-                  Módulo (arriba) y fase (abajo) de los filtros, calculados desde R y C. Los puntos
-                  son la respuesta medida sobre la señal: el espectro de la salida dividido por el
-                  de antes de los filtros. Si coinciden con la curva, el filtro hace lo que dice la
-                  teoría. Cada fc está donde la curva cruza −3 dB.
+                  Módulo (arriba) y fase (abajo) de los filtros, calculados desde sus componentes.
+                  Los puntos son la respuesta medida sobre la señal: el espectro de la salida
+                  dividido por el de antes de los filtros. Si coinciden con la curva, los filtros
+                  hacen lo que dice la teoría. Cada fc está donde la curva cruza −3 dB. Por debajo
+                  de 1 Hz los puntos son menos fiables: 8 s de señal tienen pocos ciclos y la deriva
+                  fuerte de la respiración se derrama a las frecuencias vecinas.
                 </p>
               </>
             )}
             {view === 'stages' && (
               <>
-                <StagesView engine={eng} options={stages} />
+                <StagesView engine={eng} options={stages} branch={branch} />
                 <div className="row view-options">
                   <span className="switch-label">Escala</span>
                   <Seg
@@ -240,7 +274,7 @@ export function App() {
                 <p className="muted small">
                   La señal en cada punto de la cadena, todas con la misma escala. Se ve qué quita
                   cada bloque: el amplificador, el modo común; el pasa altos, el offset y la deriva;
-                  el pasa bajos, el ruido rápido.
+                  el pasa bajos, el ruido rápido; el notch, la red.
                 </p>
               </>
             )}
@@ -284,24 +318,38 @@ export function App() {
                 format={fmt.mv}
                 onChange={(amplitude) => editEcg({ amplitude })}
               />
+              <Knob
+                label="Desnivel ST"
+                value={ecg.st}
+                min={-0.4}
+                max={0.4}
+                step={0.01}
+                defaultValue={DEFAULT_ECG.st}
+                format={(v) => `${v > 0 ? '+' : ''}${dec(v, 2)} mV`}
+                onChange={(st) => editEcg({ st })}
+              />
             </div>
             <p className="muted small">
               Cada latido es una suma de cinco gaussianas: la onda P (despolarización de las
               aurículas), el complejo QRS (de los ventrículos) y la onda T (repolarización). El QRS
               dura siempre lo mismo; P y T se acercan al R cuando sube la frecuencia, como el
               intervalo QT (fórmula de Bazett). La variabilidad cambia al azar cada intervalo RR,
-              como en un corazón real, y los cambios de frecuencia afectan sólo a los latidos
-              siguientes.
+              como en un corazón real. El desnivel ST eleva o deprime el segmento entre el QRS y
+              la T, como en un infarto o una isquemia: es lo que un pasa altos mal elegido deforma.
             </p>
           </section>
 
           <NoisePanel settings={noise} onChange={setNoise} onFocusNoise={setFocusNoise} />
 
-          <AmpPanel engine={eng} settings={amp} onChange={setAmp} />
+          <BranchBar branch={branch} onBranch={setBranch} chains={chains} onChange={setChain} />
 
-          <FilterPanel kind="hp" settings={hp} onChange={setHp} />
+          <AmpPanel engine={eng} branch={branch} settings={chain.amp} onChange={(amp) => editChain({ amp })} />
 
-          <FilterPanel kind="lp" settings={lp} onChange={setLp} />
+          <FilterPanel kind="hp" settings={chain.hp} onChange={(hp) => editChain({ hp })} />
+
+          <FilterPanel kind="lp" settings={chain.lp} onChange={(lp) => editChain({ lp })} />
+
+          <NotchPanel settings={chain.notch} onChange={(notch) => editChain({ notch })} />
         </div>
       </div>
     </div>
