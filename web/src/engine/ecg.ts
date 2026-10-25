@@ -65,6 +65,10 @@ export class EcgSource {
 
   // Valor de la señal en mV en el instante t (en s). t debe avanzar.
   sample(t: number) {
+    // Si la fuente estuvo apagada un rato (se usó el EOG), el corazón
+    // arranca de nuevo ahora en vez de rellenar latidos que nadie vio.
+    const last = this.beats[this.beats.length - 1];
+    if (last.r < t - 2) this.beats = [{ r: t + 0.3, rr: 60 / this.settings.bpm }];
     this.ensure(t + REACH);
     const amp = this.settings.amplitude;
     let v = 0;

@@ -10,9 +10,10 @@ export type MonitorOptions = {
   reference: boolean; // superponer la referencia limpia
   other: boolean; // superponer la otra rama
   samples: boolean; // marcar los instantes de muestreo del ADC
+  detections: boolean; // marcar los QRS que encontró el detector
 };
 
-export const DEFAULT_MONITOR: MonitorOptions = { speed: 25, gain: 10, labels: true, reference: true, other: false, samples: false };
+export const DEFAULT_MONITOR: MonitorOptions = { speed: 25, gain: 10, labels: true, reference: true, other: false, samples: false, detections: true };
 
 // Escala de la cuadrícula: píxeles CSS por milímetro de "papel".
 const PX_PER_MM = 4;
@@ -24,7 +25,7 @@ const GAP_PX = 24;
 // empezar, borrando lo viejo justo delante del cursor.
 export function MonitorView({ engine, options, branch }: { engine: BioEngine; options: MonitorOptions; branch: Branch }) {
   const ref = useCanvasLoop((g, w, h) => {
-    const { speed, gain, labels, reference, other, samples } = options;
+    const { speed, gain, labels, reference, other, samples, detections } = options;
     const otherBranch: Branch = branch === 'a' ? 'b' : 'a';
     const color = BRANCH_COLORS[branch];
     const pxPerSec = PX_PER_MM * speed;
@@ -84,6 +85,26 @@ export function MonitorView({ engine, options, branch }: { engine: BioEngine; op
     const eog = engine.source === 'eog';
     if (eog) drawDegrees(g, w, h, mid, (pxPerMv * engine.eog.sensitivity) / 1000);
 
+    // Un triángulo sobre cada QRS que encontró el detector de la rama; los
+    // de búsqueda hacia atrás, huecos.
+    const qrs = engine.qrs[branch];
+    if (detections && !eog) {
+      g.fillStyle = color;
+      g.strokeStyle = color;
+      g.lineWidth = 1.2;
+      for (const d of qrs.detectionsBetween(start, end - 1)) {
+        const x = xOf(d.i);
+        const y = Math.max(10, yOf(engine.sampleAt(d.i, branch)) - 22);
+        g.beginPath();
+        g.moveTo(x - 5, y - 6);
+        g.lineTo(x + 5, y - 6);
+        g.lineTo(x, y + 2);
+        g.closePath();
+        if (d.searchback) g.stroke();
+        else g.fill();
+      }
+    }
+
     if (labels && !eog) {
       g.font = '600 11px system-ui, sans-serif';
       g.textAlign = 'center';
@@ -116,7 +137,9 @@ export function MonitorView({ engine, options, branch }: { engine: BioEngine; op
       const side = Math.abs(deg) < 0.5 ? 'al centro' : `${dec(Math.abs(deg), 0)}° ${deg > 0 ? 'der.' : 'izq.'}`;
       g.fillText(`Rama ${branch.toUpperCase()} · EOG · mirada ${side}`, w - 10, 22);
     } else {
-      g.fillText(`Rama ${branch.toUpperCase()} · FC ${dec(engine.ecg.bpmAt(now), 0)} lpm`, w - 10, 22);
+      const measured = 60 / (qrs.rrMean / fs);
+      const shown = qrs.detections.length > 2 ? ` · medida ${dec(measured, 0)}` : '';
+      g.fillText(`Rama ${branch.toUpperCase()} · FC ${dec(engine.ecg.bpmAt(now), 0)} lpm${shown}`, w - 10, 22);
     }
 
     // Aviso de saturación del amplificador (en el último medio segundo).

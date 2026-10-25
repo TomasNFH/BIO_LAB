@@ -2,6 +2,7 @@ import { BRANCHES, Chain, DEFAULT_BRANCHES, type Branch, type ChainSettings } fr
 import { DEFAULT_ECG, EcgSource, type EcgSettings } from './ecg';
 import { DEFAULT_EOG, EogSource, type EogSettings } from './eog';
 import { DEFAULT_NOISE, NoiseSource, type NoiseSettings } from './noise';
+import { QrsDetector } from './qrs';
 
 export const FS = 1000; // frecuencia de las vistas y los búferes, Hz
 // La parte analógica (fuente, ruido, amplificador y filtros) corre más
@@ -58,6 +59,13 @@ export class BioEngine {
   readonly chains: Record<Branch, Chain> = {
     a: new Chain(FA, DEFAULT_BRANCHES.a),
     b: new Chain(FA, DEFAULT_BRANCHES.b),
+  };
+  // Un detector de QRS por rama, sobre la salida (lo que vería el equipo).
+  // Al cambiar de fuente se reinician, para que aprendan los niveles de
+  // nuevo.
+  readonly qrs: Record<Branch, QrsDetector> = {
+    a: new QrsDetector(FS, FS * BUFFER_SECONDS),
+    b: new QrsDetector(FS, FS * BUFFER_SECONDS),
   };
   private shared: Record<SharedPoint, Float32Array> = { clean: makeBuffer(), input: makeBuffer() };
   private taps = Object.fromEntries(
@@ -134,7 +142,9 @@ export class BioEngine {
   }
 
   setSource(kind: SourceKind) {
+    if (kind === this.source) return;
     this.source = kind;
+    for (const b of BRANCHES) this.qrs[b] = new QrsDetector(FS, FS * BUFFER_SECONDS);
   }
 
   setNoise(settings: NoiseSettings) {
@@ -216,6 +226,7 @@ export class BioEngine {
         taps.notch[j] = s[3] / OVERSAMPLE;
         // El ADC retiene su valor: se toma tal cual, sin promediar.
         taps.out[j] = this.chains[b].out;
+        this.qrs[b].process(taps.out[j], this.count);
       }
       this.count++;
     }

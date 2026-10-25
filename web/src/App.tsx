@@ -18,6 +18,7 @@ import { SourcePanel } from './components/SourcePanel';
 import type { LabSettings } from './lab';
 import { DEFAULT_MONITOR, MonitorView, type MonitorOptions } from './views/MonitorView';
 import { BodeView } from './views/BodeView';
+import { QrsView } from './views/QrsView';
 import { DEFAULT_SPECTRUM, SpectrumView, type SpectrumOptions } from './views/SpectrumView';
 import { DEFAULT_STAGES, StagesView, type StagesOptions } from './views/StagesView';
 
@@ -38,11 +39,12 @@ const SPEEDS = [12.5, 25, 50];
 const GAINS = [5, 10, 20, 50];
 const STAGE_RANGES = [1, 2, 5, 20];
 
-type ViewTab = 'spectrum' | 'bode' | 'stages';
+type ViewTab = 'spectrum' | 'bode' | 'stages' | 'qrs';
 const VIEW_TABS: { id: ViewTab; label: string }[] = [
   { id: 'spectrum', label: 'Espectro' },
   { id: 'bode', label: 'Bode' },
   { id: 'stages', label: 'Etapas' },
+  { id: 'qrs', label: 'Detector QRS' },
 ];
 
 export function App() {
@@ -100,6 +102,7 @@ export function App() {
   // fuente se ajustan la ganancia y las marcas del monitor.
   const changeSource = (s: SourceKind) => {
     setSource(s);
+    if (s === 'eog') setView((v) => (v === 'qrs' ? 'spectrum' : v));
     setMonitor((m) => ({ ...m, gain: s === 'eog' ? 20 : 10, labels: s === 'ecg' }));
   };
 
@@ -125,7 +128,7 @@ export function App() {
       <header className="header">
         <Logo />
         <h1>Bio Lab</h1>
-        <span className="phase">Etapa 8: experimentos, ajustes y exportación</span>
+        <span className="phase">Etapa 9: detección de QRS</span>
       </header>
 
       <ChainStrip />
@@ -184,6 +187,16 @@ export function App() {
                 swatch={branch === 'a' ? 'branch-b' : 'branch-a'}
                 label={`Rama ${other}`}
               />
+              {source === 'ecg' && (
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    checked={monitor.detections}
+                    onChange={(e) => editMonitor({ detections: e.target.checked })}
+                  />
+                  Marcar QRS detectados
+                </label>
+              )}
               <label className="check">
                 <input
                   type="checkbox"
@@ -207,7 +220,7 @@ export function App() {
           <section className="panel">
             <div className="panel-head">
               <div className="tabs" role="tablist">
-                {VIEW_TABS.map((t) => (
+                {VIEW_TABS.filter((t) => t.id !== 'qrs' || source === 'ecg').map((t) => (
                   <button
                     key={t.id}
                     role="tab"
@@ -290,6 +303,21 @@ export function App() {
                   hacen lo que dice la teoría. Cada fc está donde la curva cruza −3 dB. Por debajo
                   de 1 Hz los puntos son menos fiables: 8 s de señal tienen pocos ciclos y la deriva
                   fuerte de la respiración se derrama a las frecuencias vecinas.
+                </p>
+              </>
+            )}
+            {view === 'qrs' && source === 'ecg' && (
+              <>
+                <QrsView engine={eng} branch={branch} />
+                <p className="muted small">
+                  El detector de Pan y Tompkins (1985) trabaja sobre la salida de la rama, como
+                  lo haría el equipo. El pasa banda deja la energía del QRS; la derivada resalta
+                  sus pendientes; el cuadrado deja todo positivo y agranda lo grande; la
+                  integración en 150 ms deja un lomo por latido. Es QRS lo que pasa el umbral
+                  (línea de puntos), que se adapta solo a los picos de señal y de ruido. Nada
+                  cuenta en los 200 ms después de un QRS; un pico lento antes de 360 ms es una
+                  onda T; y si pasa demasiado sin detectar, vuelve a buscar con la mitad del
+                  umbral (triángulo hueco en el monitor). Cada fila tiene su propia escala.
                 </p>
               </>
             )}

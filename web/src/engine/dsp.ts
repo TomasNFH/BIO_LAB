@@ -35,6 +35,26 @@ export class Biquad {
     return new Biquad(alpha / a0, 0, -alpha / a0, (-2 * Math.cos(w0)) / a0, (1 - alpha) / a0);
   }
 
+  // Pasa bajos y pasa altos de segundo orden con el Q dado (0,707 =
+  // Butterworth).
+  static lowpass(fc: number, q: number, fs: number) {
+    const w0 = (2 * Math.PI * fc) / fs;
+    const cos = Math.cos(w0);
+    const alpha = Math.sin(w0) / (2 * q);
+    const a0 = 1 + alpha;
+    const b = (1 - cos) / 2 / a0;
+    return new Biquad(b, 2 * b, b, (-2 * cos) / a0, (1 - alpha) / a0);
+  }
+
+  static highpass(fc: number, q: number, fs: number) {
+    const w0 = (2 * Math.PI * fc) / fs;
+    const cos = Math.cos(w0);
+    const alpha = Math.sin(w0) / (2 * q);
+    const a0 = 1 + alpha;
+    const b = (1 + cos) / 2 / a0;
+    return new Biquad(b, -2 * b, b, (-2 * cos) / a0, (1 - alpha) / a0);
+  }
+
   process(x: number) {
     const y = this.b0 * x + this.b1 * this.x1 + this.b2 * this.x2 - this.a1 * this.y1 - this.a2 * this.y2;
     this.x2 = this.x1;

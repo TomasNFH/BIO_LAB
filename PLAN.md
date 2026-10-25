@@ -194,6 +194,12 @@ actual.
 9. **Extras (después).** Detección de QRS (Pan-Tompkins) y frecuencia
    cardíaca medida, DRL, EMG como fuente, importar registros reales de
    PhysioNet, arritmias.
+   - Hecho: detector de QRS de Pan-Tompkins en tiempo real sobre la salida de
+     cada rama (pasa banda 5–15 Hz, derivada, cuadrado, integración en
+     150 ms, umbrales adaptativos, período refractario, rechazo de la onda T
+     y búsqueda hacia atrás). Se juzga contra los latidos reales:
+     sensibilidad, VPP y frecuencia medida. Tiene su propia pestaña con las
+     etapas y marca las detecciones en el monitor.
 
 Las etapas 1 a 4 son la base; la mayor parte del aprendizaje está en la 3,
 la 4 y la 5.

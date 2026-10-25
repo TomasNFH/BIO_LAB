@@ -27,6 +27,18 @@ const BY_SOURCE: Record<SourceKind, Column[]> = {
       title: 'Desnivel del ST a 80 ms del R, respecto del segmento PR',
       cell: (m) => (m.kind === 'ecg' && m.beats ? `${fmtMv(m.stMeasured)} / ${fmtMv(m.stTrue)}` : '—'),
     },
+    {
+      head: 'QRS Se / VPP',
+      title: 'Detector de QRS en los últimos 20 s: % de latidos reales que encontró (sensibilidad) y % de sus detecciones que eran latidos (valor predictivo positivo)',
+      cell: (m) =>
+        m.kind === 'ecg' && m.qrs ? `${dec(m.qrs.sensitivity, 0)} % / ${Number.isFinite(m.qrs.ppv) ? dec(m.qrs.ppv, 0) : '—'} %` : '—',
+    },
+    {
+      head: 'FC medida / real',
+      title: 'Frecuencia cardíaca según las detecciones y la real, en los últimos 20 s',
+      cell: (m) =>
+        m.kind === 'ecg' && m.qrs && Number.isFinite(m.qrs.bpmMeasured) ? `${dec(m.qrs.bpmMeasured, 0)} / ${dec(m.qrs.bpmTrue, 0)} lpm` : '—',
+    },
   ],
   eog: [
     {

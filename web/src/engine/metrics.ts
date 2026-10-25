@@ -28,6 +28,18 @@ export type EcgMetrics = Common & {
   stMeasured: number; // desnivel ST medido en la salida, mV
   stTrue: number; // desnivel ST de la referencia, mV
   beats: number; // latidos usados
+  qrs: QrsScore | null;
+};
+
+// Qué tan bien detecta los QRS el detector de la rama, contra los latidos
+// reales que conoce la fuente.
+export type QrsScore = {
+  sensitivity: number; // % de latidos reales detectados
+  ppv: number; // % de detecciones que eran latidos (valor predictivo positivo)
+  missed: number;
+  extra: number;
+  bpmMeasured: number; // frecuencia según las detecciones
+  bpmTrue: number;
 };
 
 export type EogMetrics = Common & {
@@ -45,6 +57,10 @@ const MAX_DELAY = 0.04; // retardo máximo que se busca, s
 const PR = [-0.1, -0.06]; // segmento PR respecto del R, s
 const ST_AT = 0.08; // dónde se mide el ST respecto del R, s
 const R_SEARCH = 0.03; // ventana para buscar el pico R
+// Detección de QRS
+const QRS_WINDOW = 20; // s
+const QRS_LATENCY = 2; // s más nuevos que no se juzgan (búsqueda hacia atrás)
+const QRS_TOLERANCE = 0.1; // s entre el R real y la detección
 // EOG
 const HOLD = 1; // s después de la sacada en que se mide lo que queda
 const MIN_STEP = 5; // grados: sacadas más chicas no se usan
@@ -149,5 +165,49 @@ export function measure(engine: BioEngine, branch: Branch): Metrics | null {
     stMeasured: stOut / n,
     stTrue: stClean / n,
     beats: beats.length,
+    qrs: scoreQrs(engine, branch),
+  };
+}
+
+function scoreQrs(engine: BioEngine, branch: Branch): QrsScore | null {
+  const fs = engine.fs;
+  const end = engine.sampleCount / fs - QRS_LATENCY;
+  // Mientras el detector aprende (al arrancar o al cambiar de fuente) no se
+  // juzga; se deja un segundo más para que se asienten los umbrales.
+  const start = Math.max(engine.oldest / fs, engine.qrs[branch].readyFrom / fs + 1, end - QRS_WINDOW);
+  if (end - start < 4) return null;
+  const truth = engine.ecg.beatsBetween(start, end);
+  const found = engine.qrs[branch]
+    .detectionsBetween(Math.round((start - QRS_TOLERANCE) * fs), Math.round((end + QRS_TOLERANCE) * fs))
+    .map((d) => d.i / fs);
+  if (!truth.length) return null;
+  // Cada latido real se empareja con la detección libre más cercana.
+  const used = new Set<number>();
+  let hits = 0;
+  for (const b of truth) {
+    let best = -1;
+    let bestD = QRS_TOLERANCE;
+    found.forEach((t, k) => {
+      const d = Math.abs(t - b.r);
+      if (!used.has(k) && d <= bestD) {
+        best = k;
+        bestD = d;
+      }
+    });
+    if (best >= 0) {
+      used.add(best);
+      hits++;
+    }
+  }
+  const inside = found.filter((t) => t >= start && t <= end).length;
+  const extra = Math.max(0, inside - hits);
+  const rr = (times: number[]) => (times.length > 1 ? (times[times.length - 1] - times[0]) / (times.length - 1) : NaN);
+  return {
+    sensitivity: (100 * hits) / truth.length,
+    ppv: hits + extra ? (100 * hits) / (hits + extra) : NaN,
+    missed: truth.length - hits,
+    extra,
+    bpmMeasured: 60 / rr(found.filter((t) => t >= start && t <= end)),
+    bpmTrue: 60 / rr(truth.map((b) => b.r)),
   };
 }

@@ -48,7 +48,7 @@ se puede poner, por ejemplo, un pasa altos de 0,05 Hz en una rama y uno de
 
 ## Estado
 
-Etapas 0 a 8 hechas: esqueleto, dos fuentes sintéticas (ECG con
+Etapas 0 a 8 hechas, y de la 9 la detección de QRS: esqueleto, dos fuentes sintéticas (ECG con
 frecuencia, variabilidad, amplitud y desnivel ST; EOG horizontal con
 sacadas, fijaciones, lectura, seguimiento y parpadeos), monitor de barrido
 con cuadrícula de papel ECG y escala en grados para el EOG, ruido ajustable
@@ -62,8 +62,11 @@ con la misma entrada y métricas de cada una contra la señal limpia.
 Vistas: espectro con la frecuencia de Nyquist, Bode calculado y medido, y
 señal en cada etapa. Diez experimentos listos (uno por cada pregunta del
 plan), ajustes guardados en el navegador, intercambio de ajustes en JSON y
-exportación de todas las señales en CSV. Lo siguiente son los extras de la
-etapa 9. Ver [PLAN.md](PLAN.md).
+exportación de todas las señales en CSV. Detector de QRS de Pan-Tompkins en
+cada rama, con sus etapas a la vista y su sensibilidad, VPP y frecuencia
+medida contra los latidos reales. Lo que queda de la etapa 9: pierna
+derecha (DRL), EMG como fuente, importar registros reales y arritmias. Ver
+[PLAN.md](PLAN.md).
 
 ## Cómo correrlo
 
@@ -111,6 +114,7 @@ git tag v0.1.0 && git push origin v0.1.0
 | Métricas contra la señal limpia | `web/src/engine/metrics.ts`, `web/src/components/MetricsTable.tsx` |
 | Experimentos, ajustes guardados y JSON | `web/src/lab.ts`, `web/src/components/PresetPanel.tsx` |
 | Exportación CSV | `web/src/export.ts` |
+| Detector de QRS (Pan-Tompkins) y su vista | `web/src/engine/qrs.ts`, `web/src/views/QrsView.tsx` |
 | Monitor de barrido con cuadrícula de papel ECG | `web/src/views/MonitorView.tsx` |
 | Espectro de la salida, con SNR | `web/src/views/SpectrumView.tsx`, `web/src/views/spectrum.ts` |
 | Bode calculado y medido | `web/src/views/BodeView.tsx` |
