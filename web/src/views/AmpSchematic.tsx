@@ -1,11 +1,8 @@
 import { R1, R2, type AmpSettings } from '../engine/amp';
-import { dec } from '../components/Knob';
-
-export const ohms = (r: number) =>
-  r >= 1e6 ? `${dec(r / 1e6, r % 1e6 ? 2 : 0)} MΩ` : r >= 1000 ? `${dec(r / 1000, r % 1000 ? 1 : 0)} kΩ` : `${dec(r, 0)} Ω`;
+import { ohms } from '../components/units';
 
 // Resistencia como rectángulo entre dos puntos (horizontal o vertical).
-function Res({ x1, y1, x2, y2, hot }: { x1: number; y1: number; x2: number; y2: number; hot?: boolean }) {
+export function Res({ x1, y1, x2, y2, hot }: { x1: number; y1: number; x2: number; y2: number; hot?: boolean }) {
   const horizontal = y1 === y2;
   const len = horizontal ? x2 - x1 : y2 - y1;
   const body = 34;

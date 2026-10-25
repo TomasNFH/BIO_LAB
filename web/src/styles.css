@@ -121,7 +121,8 @@ select { min-width: 220px; flex: 1; }
    controles a la derecha. */
 @media (min-width: 1000px) {
   .layout { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 12px; align-items: start; }
-  .views-col { position: sticky; top: 12px; }
+  /* Si no entra en la ventana, se desplaza por su cuenta. */
+  .views-col { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow-y: auto; }
   .view-canvas.monitor { height: 300px; }
   .view-canvas.spectrum { height: 240px; }
   .controls-col .noise-grid { grid-template-columns: 1fr; }
@@ -153,3 +154,19 @@ select { min-width: 220px; flex: 1; }
 .readouts dd.bad { color: #f26b5b; font-weight: 600; }
 .muted-inline { color: var(--muted); font-size: 0.85rem; }
 .sat-warning { color: #f26b5b; font-size: 0.85rem; margin: 10px 0 0; line-height: 1.45; }
+
+/* Pestañas de vistas. */
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.tab { padding: 5px 12px; font-size: 0.85rem; background: transparent; border-color: transparent; color: var(--muted); }
+.tab.on { background: #2a2d35; border-color: var(--border); color: var(--text); }
+.swatch.before { background: #6fa8ff; }
+.swatch.lp { background: #c792ea; }
+.swatch.measured { background: #f2f2f2; width: 4px; height: 4px; }
+.swatch.dashed { background: repeating-linear-gradient(90deg, currentColor 0 5px, transparent 5px 8px); }
+.swatch.before.dashed { color: #6fa8ff; }
+.swatch.lp.dashed { color: #c792ea; }
+.view-canvas.stages { height: 360px; }
+.schematic.rc { max-width: 300px; }
+@media (min-width: 1000px) {
+  .view-canvas.stages { height: 300px; }
+}

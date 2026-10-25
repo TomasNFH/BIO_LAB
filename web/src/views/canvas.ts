@@ -81,4 +81,8 @@ export const COLORS = {
   danger: '#f26b5b',
   noise: '#f0a848',
   highlight: 'rgba(240, 168, 72, 0.12)',
+  before: '#6fa8ff', // antes de los filtros
+  hp: '#6fa8ff',
+  lp: '#c792ea',
+  measured: '#f2f2f2',
 };

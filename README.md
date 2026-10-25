@@ -48,13 +48,15 @@ se puede poner, por ejemplo, un pasa altos de 0,05 Hz en una rama y uno de
 
 ## Estado
 
-Etapas 0 a 3 hechas: esqueleto, fuente ECG sintética (frecuencia,
+Etapas 0 a 4 hechas: esqueleto, fuente ECG sintética (frecuencia,
 variabilidad, amplitud), monitor de barrido con cuadrícula de papel ECG,
 ruido ajustable (red eléctrica diferencial y en modo común, deriva de línea
 de base, EMG, ruido blanco, offset de electrodos, artefactos de movimiento),
-espectro con SNR y amplificador de instrumentación de tres op-amps con
-esquema, CMRR y saturación. Lo siguiente son los filtros RC pasa altos y
-pasa bajos. Ver [PLAN.md](PLAN.md).
+amplificador de instrumentación de tres op-amps con esquema, CMRR y
+saturación, y filtros RC pasa altos y pasa bajos definidos por R y C. Vistas:
+espectro con SNR, diagrama de Bode con la respuesta medida sobre la señal y
+la señal en cada etapa. Lo siguiente son el pasa banda, el notch y los
+filtros de segundo orden. Ver [PLAN.md](PLAN.md).
 
 ## Cómo correrlo
 
@@ -93,8 +95,11 @@ git tag v0.1.0 && git push origin v0.1.0
 | Ruido ajustable, un modelo por fuente | `web/src/engine/noise.ts`, `web/src/components/NoisePanel.tsx` |
 | Filtros básicos y FFT | `web/src/engine/dsp.ts` |
 | Amplificador de instrumentación de tres op-amps | `web/src/engine/amp.ts`, `web/src/components/AmpPanel.tsx`, `web/src/views/AmpSchematic.tsx` |
+| Filtros RC pasa altos y pasa bajos | `web/src/engine/filters.ts`, `web/src/components/FilterPanel.tsx`, `web/src/views/RcSchematic.tsx` |
 | Monitor de barrido con cuadrícula de papel ECG | `web/src/views/MonitorView.tsx` |
-| Espectro de la salida, con SNR | `web/src/views/SpectrumView.tsx` |
+| Espectro de la salida, con SNR | `web/src/views/SpectrumView.tsx`, `web/src/views/spectrum.ts` |
+| Bode calculado y medido | `web/src/views/BodeView.tsx` |
+| Señal en cada etapa | `web/src/views/StagesView.tsx` |
 | Cadena de adquisición (bloques hechos y pendientes) | `web/src/components/ChainStrip.tsx` |
 
 ## Aviso

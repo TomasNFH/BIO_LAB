@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { ampGains, DEFAULT_AMP, type AmpSettings, type AmpStats } from '../engine/amp';
 import type { BioEngine } from '../engine/BioEngine';
-import { AmpSchematic, ohms } from '../views/AmpSchematic';
+import { AmpSchematic } from '../views/AmpSchematic';
+import { ohms } from './units';
 import { dec, Knob } from './Knob';
 
 const G2_VALUES = [1, 2, 5, 10];
