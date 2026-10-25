@@ -22,7 +22,7 @@ type Props = {
 export function AdcPanel({ engine, branch, chain, onChange }: Props) {
   const settings = chain.adc;
   const edit = (patch: Partial<AdcSettings>) => onChange({ ...settings, ...patch });
-  const gain = chain.amp.on ? ampGains(chain.amp).gain : 1;
+  const gain = (chain.amp.on ? ampGains(chain.amp).gain : 1) * chain.post.gain;
   const step = lsb(settings);
   const nyquist = settings.fs / 2;
   const lpAtNyquist = filterResponse('lp', chain.lp, nyquist, FA).mag;

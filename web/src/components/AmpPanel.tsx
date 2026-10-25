@@ -7,6 +7,7 @@ import { ohms } from './units';
 import { dec, Knob } from './Knob';
 
 const G2_VALUES = [1, 2, 5, 10];
+const POST_GAINS = [1, 2, 5, 10, 20, 50, 100];
 
 const times = (v: number) => (v >= 100 ? dec(v, 0) : v >= 10 ? dec(v, 1) : dec(v, 2));
 const db = (v: number) => (Number.isFinite(v) ? `${dec(20 * Math.log10(v), 1)} dB` : '∞');
@@ -18,11 +19,13 @@ type Props = {
   branch: Branch;
   settings: AmpSettings;
   onChange: (s: AmpSettings) => void;
+  postGain: number; // ganancia después del pasa altos
+  onPostGain: (g: number) => void;
 };
 
 // Amplificador de instrumentación: perillas por componente, esquema con
 // los valores, ganancias y CMRR calculados, y lo que pasa en la salida.
-export function AmpPanel({ engine, branch, settings, onChange }: Props) {
+export function AmpPanel({ engine, branch, settings, onChange, postGain, onPostGain }: Props) {
   const edit = (patch: Partial<AmpSettings>) => onChange({ ...settings, ...patch });
   const g = ampGains(settings);
   const stats = useAmpStats(engine, branch);
@@ -60,6 +63,17 @@ export function AmpPanel({ engine, branch, settings, onChange }: Props) {
         </div>
       </div>
 
+      <div className="switch-rows post-gain">
+        <span className="switch-label">Ganancia después del pasa altos</span>
+        <div className="seg">
+          {POST_GAINS.map((v) => (
+            <button key={v} className={postGain === v ? 'on' : ''} onClick={() => onPostGain(v)}>
+              ×{v}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <dl className="readouts">
         <div>
           <dt>Etapa 1: G1 = 1 + 2·R1/Rg</dt>
@@ -73,6 +87,12 @@ export function AmpPanel({ engine, branch, settings, onChange }: Props) {
           <dt>Ganancia total</dt>
           <dd>
             ×{times(g.gain)} <span className="muted-inline">({db(g.gain)})</span>
+          </dd>
+        </div>
+        <div>
+          <dt>Ganancia hasta el ADC (× posterior)</dt>
+          <dd>
+            ×{times((settings.on ? g.gain : 1) * postGain)}
           </dd>
         </div>
         <div>
@@ -104,7 +124,9 @@ export function AmpPanel({ engine, branch, settings, onChange }: Props) {
         La etapa 1 amplifica la diferencia G1 veces pero deja pasar el modo común con ganancia 1;
         la etapa 2 lo resta. Si R3' no es igual a R3, la resta no es perfecta y una parte del modo
         común pasa a la salida. Por eso subir G1 mejora el CMRR: la señal útil crece y el modo
-        común no.
+        común no. Con offset de electrodos conviene poca ganancia acá y el resto después del pasa
+        altos (ganancia posterior, otro op-amp con la misma alimentación), cuando la continua ya
+        no está.
       </p>
     </section>
   );

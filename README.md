@@ -48,19 +48,22 @@ se puede poner, por ejemplo, un pasa altos de 0,05 Hz en una rama y uno de
 
 ## Estado
 
-Etapas 0 a 7 hechas: esqueleto, dos fuentes sintéticas (ECG con
+Etapas 0 a 8 hechas: esqueleto, dos fuentes sintéticas (ECG con
 frecuencia, variabilidad, amplitud y desnivel ST; EOG horizontal con
 sacadas, fijaciones, lectura, seguimiento y parpadeos), monitor de barrido
 con cuadrícula de papel ECG y escala en grados para el EOG, ruido ajustable
 con un juego por fuente (red eléctrica diferencial y en modo común, deriva
 de línea de base, EMG, ruido blanco, offset de electrodos, artefactos de
-movimiento), amplificador de instrumentación de tres op-amps, filtros pasa
+movimiento), amplificador de instrumentación de tres op-amps con ganancia posterior
+después del pasa altos, filtros pasa
 altos y pasa bajos de primer orden (RC) o segundo orden (Sallen-Key),
 bandas típicas de ECG y EOG, notch doble T y conversor A/D. Dos ramas A/B
 con la misma entrada y métricas de cada una contra la señal limpia.
 Vistas: espectro con la frecuencia de Nyquist, Bode calculado y medido, y
-señal en cada etapa. Lo siguiente son los presets y la exportación. Ver
-[PLAN.md](PLAN.md).
+señal en cada etapa. Diez experimentos listos (uno por cada pregunta del
+plan), ajustes guardados en el navegador, intercambio de ajustes en JSON y
+exportación de todas las señales en CSV. Lo siguiente son los extras de la
+etapa 9. Ver [PLAN.md](PLAN.md).
 
 ## Cómo correrlo
 
@@ -79,7 +82,9 @@ npm --prefix web install && npm --prefix web run dev
 
 Las dos formas usan el puerto 5174, así que no se pueden correr a la vez.
 
-Espacio pausa y reanuda el monitor; B cambia entre las ramas A y B.
+Espacio pausa y reanuda el monitor; B cambia entre las ramas A y B. Los
+ajustes guardados quedan en el navegador (localStorage); para pasarlos a
+otra computadora, exportarlos en JSON.
 
 ### Versión pública
 
@@ -103,7 +108,9 @@ git tag v0.1.0 && git push origin v0.1.0
 | Cadena de una rama (amplificador, filtros, notch, ADC) y ramas A/B | `web/src/engine/chain.ts`, `web/src/components/BranchBar.tsx` |
 | Conversor A/D | `web/src/engine/adc.ts`, `web/src/components/AdcPanel.tsx` |
 | Filtros pasa altos, pasa bajos y notch | `web/src/engine/filters.ts`, `web/src/components/FilterPanel.tsx`, `web/src/components/NotchPanel.tsx`, `web/src/views/FilterSchematic.tsx` |
-| Métricas contra el ECG limpio | `web/src/engine/metrics.ts`, `web/src/components/MetricsTable.tsx` |
+| Métricas contra la señal limpia | `web/src/engine/metrics.ts`, `web/src/components/MetricsTable.tsx` |
+| Experimentos, ajustes guardados y JSON | `web/src/lab.ts`, `web/src/components/PresetPanel.tsx` |
+| Exportación CSV | `web/src/export.ts` |
 | Monitor de barrido con cuadrícula de papel ECG | `web/src/views/MonitorView.tsx` |
 | Espectro de la salida, con SNR | `web/src/views/SpectrumView.tsx`, `web/src/views/spectrum.ts` |
 | Bode calculado y medido | `web/src/views/BodeView.tsx` |

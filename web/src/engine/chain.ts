@@ -7,6 +7,9 @@ export const BRANCHES: Branch[] = ['a', 'b'];
 
 export type ChainSettings = {
   amp: AmpSettings;
+  // Ganancia después del pasa altos: como la continua ya no está, se puede
+  // amplificar más sin saturar.
+  post: { gain: number };
   hp: FilterSettings;
   lp: FilterSettings;
   notch: NotchSettings;
@@ -15,6 +18,7 @@ export type ChainSettings = {
 
 export const DEFAULT_CHAIN: ChainSettings = {
   amp: DEFAULT_AMP,
+  post: { gain: 1 },
   hp: DEFAULT_HP,
   lp: DEFAULT_LP,
   notch: DEFAULT_NOTCH,
@@ -29,8 +33,8 @@ export const DEFAULT_BRANCHES: Record<Branch, ChainSettings> = {
 };
 
 // Una cadena de procesamiento completa: amplificador de instrumentación,
-// pasa altos, pasa bajos y notch (la parte analógica, que corre a la
-// frecuencia interna fa) y el ADC. Después de cada muestra deja la salida
+// pasa altos, ganancia posterior, pasa bajos y notch (la parte analógica,
+// que corre a la frecuencia interna fa) y el ADC. Después de cada muestra deja la salida
 // de cada etapa en sus campos, para los puntos de prueba.
 export class Chain {
   readonly amp: InstrumentationAmp;
@@ -43,6 +47,7 @@ export class Chain {
   lpOut = 0;
   notchOut = 0;
   out = 0; // salida del ADC
+  private postGain = 1;
 
   constructor(fs: number, s: ChainSettings) {
     this.amp = new InstrumentationAmp(s.amp);
@@ -50,10 +55,12 @@ export class Chain {
     this.lp = new Filter('lp', fs, s.lp);
     this.notch = new Notch(fs, s.notch);
     this.adc = new Adc(s.adc);
+    this.postGain = s.post.gain;
   }
 
   set(s: ChainSettings) {
     this.amp.set(s.amp);
+    this.postGain = s.post.gain;
     this.hp.set(s.hp);
     this.lp.set(s.lp);
     this.notch.set(s.notch);
@@ -63,7 +70,7 @@ export class Chain {
   // Ganancia entre los electrodos y la entrada del ADC (los filtros tienen
   // ganancia 1).
   get gain() {
-    return this.amp.on ? this.amp.gain : 1;
+    return (this.amp.on ? this.amp.gain : 1) * this.postGain;
   }
 
   // vd: tensión diferencial entre los electrodos; vcm: modo común. En mV.
@@ -77,7 +84,19 @@ export class Chain {
     }
     this.ampOut = amp;
     this.hpOut = this.hp.process(amp);
-    this.lpOut = this.lp.process(this.hpOut);
+    // Ganancia posterior: en V su salida es hpOut · ganancia total / 1000 y
+    // recorta en la misma alimentación que el amplificador.
+    let post = this.hpOut;
+    if (this.postGain !== 1) {
+      const g = this.gain;
+      const v = (post * g) / 1000;
+      const lim = this.amp.swing;
+      if (v > lim || v < -lim) {
+        post = ((v > 0 ? lim : -lim) * 1000) / g;
+        this.amp.noteSaturation();
+      }
+    }
+    this.lpOut = this.lp.process(post);
     this.notchOut = this.notch.process(this.lpOut);
     if (this.adc.on) {
       // El ADC ve la tensión real (en V) y devuelve el valor convertido,

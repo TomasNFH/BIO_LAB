@@ -105,6 +105,8 @@ rechaza según su CMRR.
 ### Amplificador de instrumentación (3 op-amps)
 
 - Ganancia `G = (1 + 2R/Rg) · (R3/R2)`, editable por componentes.
+- Ganancia posterior (×1 a ×100) después del pasa altos, con la misma
+  alimentación: es como se arregla la saturación por offset.
 - **CMRR** finito: sale del desequilibrio entre R3 y R3' en la etapa 2
   (perilla de error, 0,01 % a 10 %), y mejora al subir la ganancia de la
   etapa 1. El monitor muestra la salida referida a la entrada (dividida por
@@ -186,6 +188,9 @@ actual.
 7. **EOG.** Segunda fuente, con su propio juego de ruidos y filtros.
    - Listo cuando: se ve por qué el pasa altos del ECG arruina el EOG.
 8. **Presets y exportación.** Guardar y cargar configuraciones, exportar CSV.
+   Los experimentos de abajo vienen como ajustes listos (A contra B), y los
+   ajustes se pueden pasar en JSON. Para el de saturación hizo falta una
+   ganancia posterior, después del pasa altos.
 9. **Extras (después).** Detección de QRS (Pan-Tompkins) y frecuencia
    cardíaca medida, DRL, EMG como fuente, importar registros reales de
    PhysioNet, arritmias.

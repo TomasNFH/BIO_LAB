@@ -52,7 +52,6 @@ button, select {
 button:hover:not(:disabled) { border-color: #4a4e5a; }
 button:disabled, select:disabled { opacity: 0.5; cursor: default; }
 button.primary { background: var(--accent); color: #102010; border-color: transparent; font-weight: 600; min-width: 80px; }
-select { min-width: 220px; flex: 1; }
 
 .check { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
 .knobs { display: flex; gap: 28px; flex-wrap: wrap; margin-top: 14px; }
@@ -196,3 +195,15 @@ select { min-width: 220px; flex: 1; }
 .knob-label { text-align: center; }
 .knob.small .knob-dial { width: 40px; height: 40px; }
 .knob.small .knob-pointer::after { top: 3px; height: 10px; }
+
+/* Ajustes y exportación. */
+select { min-width: 0; flex: 1; }
+input.text {
+  font: inherit; color: var(--text); background: #15161a;
+  border: 1px solid var(--border); border-radius: 6px; padding: 7px 10px; flex: 1; min-width: 0;
+}
+.preset-save { margin-top: 10px; }
+.fx-block { border-top: 1px solid var(--border); margin-top: 14px; padding-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.sub-title { font-weight: 600; }
+optgroup { color: var(--muted); }
+.post-gain { margin-top: 12px; }

@@ -13,7 +13,9 @@ import { Logo } from './components/Logo';
 import { MetricsTable } from './components/MetricsTable';
 import { NoisePanel } from './components/NoisePanel';
 import { NotchPanel } from './components/NotchPanel';
+import { PresetPanel } from './components/PresetPanel';
 import { SourcePanel } from './components/SourcePanel';
+import type { LabSettings } from './lab';
 import { DEFAULT_MONITOR, MonitorView, type MonitorOptions } from './views/MonitorView';
 import { BodeView } from './views/BodeView';
 import { DEFAULT_SPECTRUM, SpectrumView, type SpectrumOptions } from './views/SpectrumView';
@@ -100,6 +102,16 @@ export function App() {
     setSource(s);
     setMonitor((m) => ({ ...m, gain: s === 'eog' ? 20 : 10, labels: s === 'ecg' }));
   };
+
+  // El ajuste completo, para guardarlo, y cómo cargar uno.
+  const current: LabSettings = { source, ecg, eog, noises, chains };
+  const applyLab = (s: LabSettings) => {
+    changeSource(s.source);
+    setEcg(s.ecg);
+    setEog(s.eog);
+    setNoises(s.noises);
+    setChains(s.chains);
+  };
   const editMonitor = (patch: Partial<MonitorOptions>) => setMonitor((s) => ({ ...s, ...patch }));
   const editSpectrum = (patch: Partial<SpectrumOptions>) => setSpectrum((s) => ({ ...s, ...patch }));
   const setChain = (b: Branch, s: ChainSettings) => setChains((c) => ({ ...c, [b]: s }));
@@ -113,7 +125,7 @@ export function App() {
       <header className="header">
         <Logo />
         <h1>Bio Lab</h1>
-        <span className="phase">Etapa 7: fuente EOG</span>
+        <span className="phase">Etapa 8: experimentos, ajustes y exportación</span>
       </header>
 
       <ChainStrip />
@@ -310,6 +322,8 @@ export function App() {
         </div>
 
         <div className="controls-col">
+          <PresetPanel engine={eng} current={current} onApply={applyLab} />
+
           <SourcePanel
             source={source}
             onSource={changeSource}
@@ -328,7 +342,14 @@ export function App() {
 
           <BranchBar branch={branch} onBranch={setBranch} chains={chains} onChange={setChain} />
 
-          <AmpPanel engine={eng} branch={branch} settings={chain.amp} onChange={(amp) => editChain({ amp })} />
+          <AmpPanel
+            engine={eng}
+            branch={branch}
+            settings={chain.amp}
+            onChange={(amp) => editChain({ amp })}
+            postGain={chain.post.gain}
+            onPostGain={(gain) => editChain({ post: { gain } })}
+          />
 
           <FilterPanel kind="hp" settings={chain.hp} onChange={(hp) => editChain({ hp })} />
 

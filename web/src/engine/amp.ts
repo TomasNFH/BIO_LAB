@@ -91,6 +91,17 @@ export class InstrumentationAmp {
     return this.gains.gain;
   }
 
+  // La etapa de ganancia posterior (después del pasa altos) usa la misma
+  // alimentación y avisa acá cuando recorta.
+  noteSaturation() {
+    this.lastSaturation = this.samples;
+    this.stats.saturated = true;
+  }
+
+  get swing() {
+    return this.gains.swing;
+  }
+
   // ¿Saturó en las últimas n muestras?
   saturatedWithin(n: number) {
     return this.samples - this.lastSaturation <= n;
