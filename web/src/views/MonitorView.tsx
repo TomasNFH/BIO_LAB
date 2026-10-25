@@ -6,9 +6,10 @@ export type MonitorOptions = {
   speed: number; // velocidad de barrido, mm/s
   gain: number; // mm por mV
   labels: boolean; // marcar P, Q, R, S, T
+  reference: boolean; // superponer la referencia limpia
 };
 
-export const DEFAULT_MONITOR: MonitorOptions = { speed: 25, gain: 10, labels: true };
+export const DEFAULT_MONITOR: MonitorOptions = { speed: 25, gain: 10, labels: true, reference: true };
 
 // Escala de la cuadrícula: píxeles CSS por milímetro de "papel".
 const PX_PER_MM = 4;
@@ -20,7 +21,7 @@ const GAP_PX = 24;
 // empezar, borrando lo viejo justo delante del cursor.
 export function MonitorView({ engine, options }: { engine: BioEngine; options: MonitorOptions }) {
   const ref = useCanvasLoop((g, w, h) => {
-    const { speed, gain, labels } = options;
+    const { speed, gain, labels, reference } = options;
     const pxPerSec = PX_PER_MM * speed;
     const pxPerMv = PX_PER_MM * gain;
     const span = w / pxPerSec; // segundos que entran en pantalla
@@ -36,19 +37,23 @@ export function MonitorView({ engine, options }: { engine: BioEngine; options: M
     const yOf = (v: number) => mid - v * pxPerMv;
 
     // Trazo: se corta donde el barrido vuelve al borde izquierdo.
-    g.strokeStyle = COLORS.trace;
-    g.lineWidth = 1.6;
-    g.lineJoin = 'round';
-    g.beginPath();
-    let prevX = Infinity;
-    for (let i = start; i < end; i++) {
-      const x = xOf(i);
-      const y = yOf(engine.sampleAt(i));
-      if (x < prevX) g.moveTo(x, y);
-      else g.lineTo(x, y);
-      prevX = x;
-    }
-    g.stroke();
+    const trace = (at: (i: number) => number, color: string, width: number) => {
+      g.strokeStyle = color;
+      g.lineWidth = width;
+      g.lineJoin = 'round';
+      g.beginPath();
+      let prevX = Infinity;
+      for (let i = start; i < end; i++) {
+        const x = xOf(i);
+        const y = yOf(at(i));
+        if (x < prevX) g.moveTo(x, y);
+        else g.lineTo(x, y);
+        prevX = x;
+      }
+      g.stroke();
+    };
+    if (reference) trace((i) => engine.cleanAt(i), COLORS.reference, 1.2);
+    trace((i) => engine.sampleAt(i), COLORS.trace, 1.6);
 
     // Punto brillante en la cabeza del trazo.
     if (end > start) {
@@ -85,6 +90,20 @@ export function MonitorView({ engine, options }: { engine: BioEngine; options: M
     g.fillStyle = COLORS.trace;
     g.textAlign = 'right';
     g.fillText(`FC ${dec(engine.ecg.bpmAt(now), 0)} lpm`, w - 10, 22);
+
+    // Si la señal se va de la pantalla (por ejemplo con offset de
+    // continua), avisar hacia dónde y cuánto vale.
+    if (end > start) {
+      const v = engine.sampleAt(end - 1);
+      const y = yOf(v);
+      if (y < 0 || y > h) {
+        g.font = '600 13px system-ui, sans-serif';
+        g.fillStyle = COLORS.warning;
+        g.textAlign = 'center';
+        const text = `${y < 0 ? '↑' : '↓'} fuera de escala: ${dec(v, 1)} mV`;
+        g.fillText(text, w / 2, y < 0 ? 22 : h - 10);
+      }
+    }
     g.textAlign = 'left';
   });
 

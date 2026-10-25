@@ -1,5 +1,5 @@
-// La cadena de adquisición completa. Por ahora sólo la fuente y el
-// monitor están hechos; el resto aparece apagado hasta su etapa.
+// La cadena de adquisición completa. Los bloques que todavía no están
+// hechos aparecen apagados hasta su etapa.
 const BLOCKS: { label: string; stage: number }[] = [
   { label: 'Fuente ECG', stage: 1 },
   { label: 'Ruido', stage: 2 },
@@ -11,7 +11,7 @@ const BLOCKS: { label: string; stage: number }[] = [
   { label: 'Monitor', stage: 1 },
 ];
 
-const CURRENT_STAGE = 1;
+const CURRENT_STAGE = 2;
 
 export function ChainStrip() {
   return (

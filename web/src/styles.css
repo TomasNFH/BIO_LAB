@@ -96,3 +96,33 @@ select { min-width: 220px; flex: 1; }
   border: 1px dashed var(--border); color: var(--muted); opacity: 0.6;
 }
 .chain li.on span { border-style: solid; border-color: var(--accent); color: var(--text); opacity: 1; }
+
+/* Muestras de color de las leyendas. */
+.legend { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+.swatch { display: inline-block; width: 14px; height: 3px; border-radius: 2px; }
+.swatch.out { background: var(--accent); }
+.swatch.ref { background: rgba(200, 202, 210, 0.7); }
+.swatch.noise { background: #f0a848; }
+.muted.small.top { margin: 0 0 12px; }
+
+/* Ruido: una tarjeta por fuente. */
+.noise-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+.noise-card { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; transition: border-color 0.1s; }
+.noise-card:hover, .noise-card:focus-within { border-color: #f0a84866; }
+.noise-card.off .knobs, .noise-card.off .noise-band { opacity: 0.45; }
+.noise-disabled .noise-grid { opacity: 0.45; }
+.noise-title { font-weight: 600; }
+.noise-band { font-size: 0.78rem; color: #f0a848; margin: 2px 0 0 22px; }
+.knobs.compact { gap: 14px; margin-top: 8px; align-items: center; }
+.noise-switches { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.noise-card .muted.small { margin-top: 6px; }
+
+/* En pantallas anchas: vistas a la izquierda (fijas al desplazar) y
+   controles a la derecha. */
+@media (min-width: 1000px) {
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 12px; align-items: start; }
+  .views-col { position: sticky; top: 12px; }
+  .view-canvas.monitor { height: 300px; }
+  .view-canvas.spectrum { height: 240px; }
+  .controls-col .noise-grid { grid-template-columns: 1fr; }
+}

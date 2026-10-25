@@ -72,7 +72,12 @@ export const COLORS = {
   gridMinor: 'rgba(255, 110, 110, 0.07)',
   gridMajor: 'rgba(255, 110, 110, 0.2)',
   label: '#8a8d97',
+  grid: 'rgba(255, 255, 255, 0.07)',
+  gridStrong: 'rgba(255, 255, 255, 0.18)',
   trace: '#5be37a', // verde de monitor
   traceHead: '#c8ffd4',
-  reference: '#8d909a',
+  reference: 'rgba(200, 202, 210, 0.55)',
+  warning: '#f0a848',
+  noise: '#f0a848',
+  highlight: 'rgba(240, 168, 72, 0.12)',
 };

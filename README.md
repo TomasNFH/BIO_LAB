@@ -48,9 +48,12 @@ se puede poner, por ejemplo, un pasa altos de 0,05 Hz en una rama y uno de
 
 ## Estado
 
-Etapas 0 y 1 hechas: esqueleto, fuente ECG sintética (frecuencia,
-variabilidad, amplitud) y monitor de barrido con cuadrícula de papel ECG.
-Lo siguiente es el ruido ajustable. Ver [PLAN.md](PLAN.md).
+Etapas 0 a 2 hechas: esqueleto, fuente ECG sintética (frecuencia,
+variabilidad, amplitud), monitor de barrido con cuadrícula de papel ECG,
+ruido ajustable (red eléctrica, deriva de línea de base, EMG, ruido blanco,
+offset de electrodos, artefactos de movimiento) y espectro con SNR de
+entrada. Lo siguiente es el amplificador de instrumentación. Ver
+[PLAN.md](PLAN.md).
 
 ## Cómo correrlo
 
@@ -86,7 +89,10 @@ git tag v0.1.0 && git push origin v0.1.0
 | --- | --- |
 | Motor: genera la señal en tiempo real y la guarda en un búfer circular | `web/src/engine/BioEngine.ts` |
 | ECG sintético: suma de gaussianas P, Q, R, S, T por latido | `web/src/engine/ecg.ts` |
+| Ruido ajustable, un modelo por fuente | `web/src/engine/noise.ts`, `web/src/components/NoisePanel.tsx` |
+| Filtros básicos y FFT | `web/src/engine/dsp.ts` |
 | Monitor de barrido con cuadrícula de papel ECG | `web/src/views/MonitorView.tsx` |
+| Espectro antes de la cadena, con SNR de entrada | `web/src/views/SpectrumView.tsx` |
 | Cadena de adquisición (bloques hechos y pendientes) | `web/src/components/ChainStrip.tsx` |
 
 ## Aviso

@@ -86,6 +86,11 @@ separado en el monitor y en el espectro.
 | Offset de electrodos | Continua de hasta ±300 mV, distinta en cada electrodo | 0 Hz | Acople AC / pasa altos; limita la ganancia de la 1.ª etapa |
 | Artefacto de movimiento | Saltos y transitorios aleatorios | Bajas, se solapan con la señal | Difícil: sirve para mostrar el límite de los filtros |
 
+En la etapa 2 todos los ruidos se suman a la señal diferencial (lo que
+vería un amplificador ideal). En la etapa 3 la interferencia de red y el
+offset pasan a tener también una parte en modo común, que el amplificador
+rechaza según su CMRR.
+
 ## Bloques de la cadena
 
 ### Amplificador de instrumentación (3 op-amps)
