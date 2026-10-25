@@ -55,11 +55,19 @@ Lo siguiente es el ruido ajustable. Ver [PLAN.md](PLAN.md).
 ## Cómo correrlo
 
 En http://localhost:5174 (otro puerto que Tone Lab, así corren los dos a la
-vez):
+vez). Con Docker, con recarga en vivo al editar el código:
+
+```bash
+docker compose up --build
+```
+
+Sin Docker:
 
 ```bash
 npm --prefix web install && npm --prefix web run dev
 ```
+
+Las dos formas usan el puerto 5174, así que no se pueden correr a la vez.
 
 Espacio pausa y reanuda el monitor.
 

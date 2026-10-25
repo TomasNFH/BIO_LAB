@@ -1,0 +1,9 @@
+services:
+  web:
+    build: ./web
+    ports:
+      - "5174:5174"
+    volumes:
+      # Recarga en vivo del código; el contenedor conserva sus node_modules.
+      - ./web:/app
+      - /app/node_modules
