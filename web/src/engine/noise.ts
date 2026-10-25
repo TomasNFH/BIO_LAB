@@ -25,6 +25,17 @@ export const DEFAULT_NOISE: NoiseSettings = {
   motion: { on: false, level: 1.5, rate: 6 },
 };
 
+// El EOG es mucho más chico que el ECG (cientos de µV en todo su rango) y
+// se registra en la cara, sin el pecho que respira: su juego de ruidos por
+// defecto tiene menos deriva y menos EMG.
+export const DEFAULT_NOISE_EOG: NoiseSettings = {
+  ...DEFAULT_NOISE,
+  mains: { ...DEFAULT_NOISE.mains, level: 0.02 },
+  wander: { on: true, level: 0.03, breath: 0.25 },
+  emg: { on: true, level: 0.01, bursts: true },
+  white: { on: true, level: 0.005 },
+};
+
 // Banda de frecuencias donde vive cada ruido, para marcarla en el espectro.
 export function noiseBand(id: NoiseId, s: NoiseSettings): [number, number] {
   switch (id) {

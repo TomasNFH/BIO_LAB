@@ -1,5 +1,6 @@
 import { BRANCHES, Chain, DEFAULT_BRANCHES, type Branch, type ChainSettings } from './chain';
 import { DEFAULT_ECG, EcgSource, type EcgSettings } from './ecg';
+import { DEFAULT_EOG, EogSource, type EogSettings } from './eog';
 import { DEFAULT_NOISE, NoiseSource, type NoiseSettings } from './noise';
 
 export const FS = 1000; // frecuencia de las vistas y los búferes, Hz
@@ -13,6 +14,9 @@ const BUFFER_SECONDS = 30;
 const MAX_STEP = 0.1;
 
 export type EngineState = { playing: boolean };
+
+// Señal fisiológica que entra a la cadena.
+export type SourceKind = 'ecg' | 'eog';
 
 // Puntos de prueba, en orden. Los dos primeros son comunes a las dos ramas;
 // el resto existe una vez por rama. Todos en mV referidos a la entrada.
@@ -48,6 +52,8 @@ export class BioEngine {
   readonly fs = FS;
   readonly analogFs = FA;
   readonly ecg = new EcgSource(DEFAULT_ECG);
+  readonly eog = new EogSource(DEFAULT_EOG);
+  source: SourceKind = 'ecg';
   readonly noise = new NoiseSource(FA, DEFAULT_NOISE);
   readonly chains: Record<Branch, Chain> = {
     a: new Chain(FA, DEFAULT_BRANCHES.a),
@@ -123,6 +129,14 @@ export class BioEngine {
     this.ecg.set(settings);
   }
 
+  setEog(settings: EogSettings) {
+    this.eog.set(settings);
+  }
+
+  setSource(kind: SourceKind) {
+    this.source = kind;
+  }
+
   setNoise(settings: NoiseSettings) {
     this.noise.set(settings);
   }
@@ -175,7 +189,7 @@ export class BioEngine {
       for (let k = 0; k < OVERSAMPLE; k++) {
         const na = this.count * OVERSAMPLE + k;
         const t = na / FA;
-        const clean = this.ecg.sample(t);
+        const clean = this.source === 'ecg' ? this.ecg.sample(t) : this.eog.sample(t);
         // Tensión diferencial entre los electrodos y modo común, en mV.
         const vd = clean + this.noise.sample(t);
         const vcm = this.noise.common;
@@ -206,6 +220,7 @@ export class BioEngine {
       this.count++;
     }
     this.ecg.prune(this.time - BUFFER_SECONDS);
+    this.eog.prune(this.time);
   }
 
   private tick = (now: number) => {

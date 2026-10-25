@@ -81,7 +81,10 @@ export function MonitorView({ engine, options, branch }: { engine: BioEngine; op
       g.fill();
     }
 
-    if (labels) {
+    const eog = engine.source === 'eog';
+    if (eog) drawDegrees(g, w, h, mid, (pxPerMv * engine.eog.sensitivity) / 1000);
+
+    if (labels && !eog) {
       g.font = '600 11px system-ui, sans-serif';
       g.textAlign = 'center';
       g.fillStyle = COLORS.label;
@@ -107,7 +110,14 @@ export function MonitorView({ engine, options, branch }: { engine: BioEngine; op
     g.font = '600 15px system-ui, sans-serif';
     g.fillStyle = color;
     g.textAlign = 'right';
-    g.fillText(`Rama ${branch.toUpperCase()} · FC ${dec(engine.ecg.bpmAt(now), 0)} lpm`, w - 10, 22);
+    if (eog) {
+      // La mirada real (sin ruido ni filtros), para comparar con el trazo.
+      const deg = engine.eog.angleAt(now);
+      const side = Math.abs(deg) < 0.5 ? 'al centro' : `${dec(Math.abs(deg), 0)}° ${deg > 0 ? 'der.' : 'izq.'}`;
+      g.fillText(`Rama ${branch.toUpperCase()} · EOG · mirada ${side}`, w - 10, 22);
+    } else {
+      g.fillText(`Rama ${branch.toUpperCase()} · FC ${dec(engine.ecg.bpmAt(now), 0)} lpm`, w - 10, 22);
+    }
 
     // Aviso de saturación del amplificador (en el último medio segundo).
     const amp = engine.chains[branch].amp;
@@ -161,4 +171,24 @@ function drawGrid(g: CanvasRenderingContext2D, w: number, h: number, mid: number
       if (mm) line(0, mid + mm * PX_PER_MM + 0.5, w, mid + mm * PX_PER_MM + 0.5);
     }
   }
+}
+
+// Escala de grados de mirada a la derecha, para el EOG.
+function drawDegrees(g: CanvasRenderingContext2D, w: number, h: number, mid: number, pxPerDeg: number) {
+  const step = pxPerDeg * 10 >= 24 ? 10 : 20;
+  g.font = '10px system-ui, sans-serif';
+  g.fillStyle = COLORS.label;
+  g.strokeStyle = COLORS.label;
+  g.textAlign = 'right';
+  g.lineWidth = 1;
+  for (let deg = -60; deg <= 60; deg += step) {
+    const y = mid - deg * pxPerDeg;
+    if (y < 34 || y > h - 18) continue;
+    g.beginPath();
+    g.moveTo(w - 6, Math.round(y) + 0.5);
+    g.lineTo(w, Math.round(y) + 0.5);
+    g.stroke();
+    g.fillText(`${deg}°`, w - 9, y + 3.5);
+  }
+  g.textAlign = 'left';
 }

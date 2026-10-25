@@ -1,18 +1,19 @@
 import { useEffect, useState } from 'react';
-import { BioEngine, type EngineState } from './engine/BioEngine';
+import { BioEngine, type EngineState, type SourceKind } from './engine/BioEngine';
 import { BRANCHES, DEFAULT_BRANCHES, type Branch, type ChainSettings } from './engine/chain';
 import { DEFAULT_ECG, type EcgSettings } from './engine/ecg';
-import { DEFAULT_NOISE, noiseBand, type NoiseId, type NoiseSettings } from './engine/noise';
+import { DEFAULT_EOG, type EogSettings } from './engine/eog';
+import { DEFAULT_NOISE, DEFAULT_NOISE_EOG, noiseBand, type NoiseId, type NoiseSettings } from './engine/noise';
 import { AdcPanel } from './components/AdcPanel';
 import { AmpPanel } from './components/AmpPanel';
 import { BranchBar } from './components/BranchBar';
 import { ChainStrip } from './components/ChainStrip';
 import { FilterPanel } from './components/FilterPanel';
-import { dec, fmt, Knob } from './components/Knob';
 import { Logo } from './components/Logo';
 import { MetricsTable } from './components/MetricsTable';
 import { NoisePanel } from './components/NoisePanel';
 import { NotchPanel } from './components/NotchPanel';
+import { SourcePanel } from './components/SourcePanel';
 import { DEFAULT_MONITOR, MonitorView, type MonitorOptions } from './views/MonitorView';
 import { BodeView } from './views/BodeView';
 import { DEFAULT_SPECTRUM, SpectrumView, type SpectrumOptions } from './views/SpectrumView';
@@ -32,7 +33,7 @@ const getEngine = () => {
 };
 
 const SPEEDS = [12.5, 25, 50];
-const GAINS = [5, 10, 20];
+const GAINS = [5, 10, 20, 50];
 const STAGE_RANGES = [1, 2, 5, 20];
 
 type ViewTab = 'spectrum' | 'bode' | 'stages';
@@ -45,8 +46,13 @@ const VIEW_TABS: { id: ViewTab; label: string }[] = [
 export function App() {
   const eng = getEngine();
   const [state, setState] = useState<EngineState>(eng.state);
+  const [source, setSource] = useState<SourceKind>('ecg');
   const [ecg, setEcg] = useState<EcgSettings>(DEFAULT_ECG);
-  const [noise, setNoise] = useState<NoiseSettings>(DEFAULT_NOISE);
+  const [eog, setEog] = useState<EogSettings>(DEFAULT_EOG);
+  // Cada fuente tiene su propio juego de ruidos.
+  const [noises, setNoises] = useState<Record<SourceKind, NoiseSettings>>({ ecg: DEFAULT_NOISE, eog: DEFAULT_NOISE_EOG });
+  const noise = noises[source];
+  const setNoise = (n: NoiseSettings) => setNoises((all) => ({ ...all, [source]: n }));
   const [focusNoise, setFocusNoise] = useState<NoiseId | null>(null);
   const [chains, setChains] = useState<Record<Branch, ChainSettings>>(DEFAULT_BRANCHES);
   // La rama que se edita en los paneles y se muestra en las vistas.
@@ -62,7 +68,9 @@ export function App() {
     return unsubscribe;
   }, [eng]);
 
+  useEffect(() => eng.setSource(source), [eng, source]);
   useEffect(() => eng.setEcg(ecg), [eng, ecg]);
+  useEffect(() => eng.setEog(eog), [eng, eog]);
   useEffect(() => eng.setNoise(noise), [eng, noise]);
   useEffect(() => {
     for (const b of BRANCHES) eng.setChain(b, chains[b]);
@@ -86,7 +94,12 @@ export function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, [eng]);
 
-  const editEcg = (patch: Partial<EcgSettings>) => setEcg((s) => ({ ...s, ...patch }));
+  // El EOG es más chico que el ECG y no tiene ondas que marcar: al cambiar de
+  // fuente se ajustan la ganancia y las marcas del monitor.
+  const changeSource = (s: SourceKind) => {
+    setSource(s);
+    setMonitor((m) => ({ ...m, gain: s === 'eog' ? 20 : 10, labels: s === 'ecg' }));
+  };
   const editMonitor = (patch: Partial<MonitorOptions>) => setMonitor((s) => ({ ...s, ...patch }));
   const editSpectrum = (patch: Partial<SpectrumOptions>) => setSpectrum((s) => ({ ...s, ...patch }));
   const setChain = (b: Branch, s: ChainSettings) => setChains((c) => ({ ...c, [b]: s }));
@@ -100,7 +113,7 @@ export function App() {
       <header className="header">
         <Logo />
         <h1>Bio Lab</h1>
-        <span className="phase">Etapa 6: conversor A/D</span>
+        <span className="phase">Etapa 7: fuente EOG</span>
       </header>
 
       <ChainStrip />
@@ -137,14 +150,16 @@ export function App() {
                 label={(v) => `${v} mm/mV`}
                 onChange={(gain) => editMonitor({ gain })}
               />
-              <label className="check">
-                <input
-                  type="checkbox"
-                  checked={monitor.labels}
-                  onChange={(e) => editMonitor({ labels: e.target.checked })}
-                />
-                Marcar ondas
-              </label>
+              {source === 'ecg' && (
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    checked={monitor.labels}
+                    onChange={(e) => editMonitor({ labels: e.target.checked })}
+                  />
+                  Marcar ondas
+                </label>
+              )}
               <Check
                 checked={monitor.reference}
                 onChange={(reference) => editMonitor({ reference })}
@@ -166,13 +181,14 @@ export function App() {
                 Marcar muestras del ADC
               </label>
             </div>
-            <MetricsTable engine={eng} />
+            <MetricsTable engine={eng} source={source} />
             <p className="muted small">
               Cuadrícula de papel ECG: cada cuadro chico es 1 mm y cada grande 5 mm. A 25 mm/s un
-              cuadro grande son 0,2 s; a 10 mm/mV, dos cuadros grandes son 1 mV. La salida está
-              referida a la entrada (dividida por la ganancia); en gris el ECG limpio. Espacio pausa
-              el monitor y B cambia de rama. Las métricas comparan cada rama con el ECG limpio en
-              los últimos 8 s.
+              cuadro grande son 0,2 s; a 10 mm/mV, dos cuadros grandes son 1 mV. Con el EOG, la
+              escala de la derecha está en grados de mirada. La salida está referida a la entrada
+              (dividida por la ganancia); en gris la señal limpia. Espacio pausa el monitor y B
+              cambia de rama. Las métricas comparan cada rama con la señal limpia en los últimos
+              8 s.
             </p>
           </section>
 
@@ -294,64 +310,21 @@ export function App() {
         </div>
 
         <div className="controls-col">
-          <section className="panel">
-            <div className="panel-head">
-              <h2>Fuente: ECG sintético</h2>
-              <button onClick={() => setEcg(DEFAULT_ECG)}>Restablecer</button>
-            </div>
-            <div className="knobs">
-              <Knob
-                label="Frecuencia"
-                value={ecg.bpm}
-                min={40}
-                max={180}
-                step={1}
-                defaultValue={DEFAULT_ECG.bpm}
-                format={fmt.bpm}
-                onChange={(bpm) => editEcg({ bpm })}
-              />
-              <Knob
-                label="Variabilidad"
-                value={ecg.hrv}
-                min={0}
-                max={0.15}
-                step={0.005}
-                defaultValue={DEFAULT_ECG.hrv}
-                format={fmt.pct}
-                onChange={(hrv) => editEcg({ hrv })}
-              />
-              <Knob
-                label="Amplitud R"
-                value={ecg.amplitude}
-                min={0.2}
-                max={2.5}
-                step={0.05}
-                defaultValue={DEFAULT_ECG.amplitude}
-                format={fmt.mv}
-                onChange={(amplitude) => editEcg({ amplitude })}
-              />
-              <Knob
-                label="Desnivel ST"
-                value={ecg.st}
-                min={-0.4}
-                max={0.4}
-                step={0.01}
-                defaultValue={DEFAULT_ECG.st}
-                format={(v) => `${v > 0 ? '+' : ''}${dec(v, 2)} mV`}
-                onChange={(st) => editEcg({ st })}
-              />
-            </div>
-            <p className="muted small">
-              Cada latido es una suma de cinco gaussianas: la onda P (despolarización de las
-              aurículas), el complejo QRS (de los ventrículos) y la onda T (repolarización). El QRS
-              dura siempre lo mismo; P y T se acercan al R cuando sube la frecuencia, como el
-              intervalo QT (fórmula de Bazett). La variabilidad cambia al azar cada intervalo RR,
-              como en un corazón real. El desnivel ST eleva o deprime el segmento entre el QRS y
-              la T, como en un infarto o una isquemia: es lo que un pasa altos mal elegido deforma.
-            </p>
-          </section>
+          <SourcePanel
+            source={source}
+            onSource={changeSource}
+            ecg={ecg}
+            onEcg={setEcg}
+            eog={eog}
+            onEog={setEog}
+          />
 
-          <NoisePanel settings={noise} onChange={setNoise} onFocusNoise={setFocusNoise} />
+          <NoisePanel
+            settings={noise}
+            defaults={source === 'ecg' ? DEFAULT_NOISE : DEFAULT_NOISE_EOG}
+            onChange={setNoise}
+            onFocusNoise={setFocusNoise}
+          />
 
           <BranchBar branch={branch} onBranch={setBranch} chains={chains} onChange={setChain} />
 

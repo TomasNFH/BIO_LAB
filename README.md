@@ -48,18 +48,18 @@ se puede poner, por ejemplo, un pasa altos de 0,05 Hz en una rama y uno de
 
 ## Estado
 
-Etapas 0 a 6 hechas: esqueleto, fuente ECG sintética (frecuencia,
-variabilidad, amplitud, desnivel ST), monitor de barrido con cuadrícula de
-papel ECG, ruido ajustable (red eléctrica diferencial y en modo común,
-deriva de línea de base, EMG, ruido blanco, offset de electrodos,
-artefactos de movimiento), amplificador de instrumentación de tres op-amps,
-filtros pasa altos y pasa bajos de primer orden (RC) o segundo orden
-(Sallen-Key Butterworth, Bessel o Chebyshev), bandas típicas de monitoreo y
-diagnóstico, notch doble T y conversor A/D (frecuencia de muestreo,
-resolución, rango, aliasing y cuantización). Dos ramas A/B con la misma
-entrada y métricas de cada una contra el ECG limpio (retardo, SNR, error
-eficaz, onda R, ST). Vistas: espectro con la frecuencia de Nyquist, Bode
-calculado y medido, y señal en cada etapa. Lo siguiente es el EOG. Ver
+Etapas 0 a 7 hechas: esqueleto, dos fuentes sintéticas (ECG con
+frecuencia, variabilidad, amplitud y desnivel ST; EOG horizontal con
+sacadas, fijaciones, lectura, seguimiento y parpadeos), monitor de barrido
+con cuadrícula de papel ECG y escala en grados para el EOG, ruido ajustable
+con un juego por fuente (red eléctrica diferencial y en modo común, deriva
+de línea de base, EMG, ruido blanco, offset de electrodos, artefactos de
+movimiento), amplificador de instrumentación de tres op-amps, filtros pasa
+altos y pasa bajos de primer orden (RC) o segundo orden (Sallen-Key),
+bandas típicas de ECG y EOG, notch doble T y conversor A/D. Dos ramas A/B
+con la misma entrada y métricas de cada una contra la señal limpia.
+Vistas: espectro con la frecuencia de Nyquist, Bode calculado y medido, y
+señal en cada etapa. Lo siguiente son los presets y la exportación. Ver
 [PLAN.md](PLAN.md).
 
 ## Cómo correrlo
@@ -96,6 +96,7 @@ git tag v0.1.0 && git push origin v0.1.0
 | --- | --- |
 | Motor: la parte analógica a 4 kHz, los búferes de las vistas a 1 kHz | `web/src/engine/BioEngine.ts` |
 | ECG sintético: suma de gaussianas P, Q, R, S, T por latido | `web/src/engine/ecg.ts` |
+| EOG sintético: sacadas, fijaciones, lectura, seguimiento, parpadeos | `web/src/engine/eog.ts`, `web/src/components/SourcePanel.tsx` |
 | Ruido ajustable, un modelo por fuente | `web/src/engine/noise.ts`, `web/src/components/NoisePanel.tsx` |
 | Filtros básicos y FFT | `web/src/engine/dsp.ts` |
 | Amplificador de instrumentación de tres op-amps | `web/src/engine/amp.ts`, `web/src/components/AmpPanel.tsx`, `web/src/views/AmpSchematic.tsx` |

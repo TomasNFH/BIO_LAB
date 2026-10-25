@@ -71,6 +71,15 @@ prematuro, bloqueo).
 - Amplitud del orden de 10–20 µV por grado, contenido casi todo por debajo de
   ~30 Hz y con componente de **continua**: el pasa altos que sirve para el ECG
   arruina el EOG, y eso es justamente una lección.
+- Tres patrones: mirada libre (sacadas al azar y fijaciones), lectura (saltos
+  chicos a la derecha y uno grande de vuelta) y seguimiento suave. Al cambiar
+  de patrón el ojo sigue desde donde estaba.
+- El EOG tiene su propio juego de ruidos (menos deriva y menos EMG que el
+  ECG); los filtros son los mismos de la rama, para que se vea qué le hacen
+  los del ECG. La barra de la cadena tiene la banda del EOG: sin pasa altos
+  (CC) y pasa bajos de 30 Hz.
+- Métricas propias: error de mirada en grados y qué parte de cada salto se
+  sigue viendo 1 s después, durante la fijación.
 
 ## Ruido ajustable
 

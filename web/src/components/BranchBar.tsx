@@ -3,10 +3,12 @@ import { cutoff, PRESETS } from '../engine/filters';
 import { hz } from './units';
 
 // Pasa banda = pasa altos y pasa bajos en cascada. Cada botón fija los dos
-// filtros de la rama a la vez, sin tocar su orden.
+// filtros de la rama a la vez, sin tocar su orden. El EOG necesita la
+// continua: sin pasa altos y con un pasa bajos de 30 Hz.
 const BANDS = [
-  { label: 'Monitoreo', hp: PRESETS.hp[1], lp: PRESETS.lp[0] },
-  { label: 'Diagnóstico', hp: PRESETS.hp[0], lp: PRESETS.lp[1] },
+  { label: 'ECG monitoreo', hp: PRESETS.hp[1], lp: PRESETS.lp[0] },
+  { label: 'ECG diagnóstico', hp: PRESETS.hp[0], lp: PRESETS.lp[1] },
+  { label: 'EOG', hp: null, lp: { r: 10e3, c: 530e-9 } },
 ];
 
 type Props = {
@@ -40,7 +42,8 @@ export function BranchBar({ branch, onBranch, chains, onChange }: Props) {
         <span className="switch-label">Pasa banda</span>
         <div className="seg">
           {BANDS.map((band) => {
-            const on = s.hp.on && s.lp.on && s.hp.r === band.hp.r && s.hp.c === band.hp.c && s.lp.r === band.lp.r && s.lp.c === band.lp.c;
+            const hpOk = band.hp ? s.hp.on && s.hp.r === band.hp.r && s.hp.c === band.hp.c : !s.hp.on;
+            const on = hpOk && s.lp.on && s.lp.r === band.lp.r && s.lp.c === band.lp.c;
             return (
               <button
                 key={band.label}
@@ -48,22 +51,22 @@ export function BranchBar({ branch, onBranch, chains, onChange }: Props) {
                 onClick={() =>
                   onChange(branch, {
                     ...s,
-                    hp: { ...s.hp, on: true, r: band.hp.r, c: band.hp.c },
+                    hp: band.hp ? { ...s.hp, on: true, r: band.hp.r, c: band.hp.c } : { ...s.hp, on: false },
                     lp: { ...s.lp, on: true, r: band.lp.r, c: band.lp.c },
                   })
                 }
               >
-                {band.label} {hz(cutoff(band.hp))} – {hz(cutoff(band.lp))}
+                {band.label} {band.hp ? hz(cutoff(band.hp)) : 'CC'} – {hz(cutoff(band.lp))}
               </button>
             );
           })}
         </div>
       </div>
       <p className="muted small">
-        La misma señal (ECG más ruido) entra a dos cadenas completas, A y B. Los paneles de abajo
+        La misma señal (con su ruido) entra a dos cadenas completas, A y B. Los paneles de abajo
         editan la rama elegida y las vistas la muestran; la tecla B cambia de rama. Un pasa banda
-        es un pasa altos y un pasa bajos en cascada: la banda de monitoreo limpia más, la de
-        diagnóstico deforma menos.
+        es un pasa altos y un pasa bajos en cascada: en el ECG la banda de monitoreo limpia más
+        y la de diagnóstico deforma menos; el EOG necesita llegar hasta la continua (CC).
       </p>
     </section>
   );

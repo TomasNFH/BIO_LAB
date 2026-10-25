@@ -1,7 +1,7 @@
 // La cadena de adquisición completa. Los bloques que todavía no están
 // hechos aparecen apagados hasta su etapa.
 const BLOCKS: { label: string; stage: number }[] = [
-  { label: 'Fuente ECG', stage: 1 },
+  { label: 'Fuente ECG / EOG', stage: 1 },
   { label: 'Ruido', stage: 2 },
   { label: 'Amp. de instrumentación', stage: 3 },
   { label: 'Pasa altos', stage: 4 },
@@ -11,7 +11,7 @@ const BLOCKS: { label: string; stage: number }[] = [
   { label: 'Monitor', stage: 1 },
 ];
 
-const CURRENT_STAGE = 6;
+const CURRENT_STAGE = 7;
 
 export function ChainStrip() {
   return (
