@@ -71,7 +71,7 @@ const makeState = (): State => ({
   primed: false,
 });
 
-// Espectro antes de la cadena: la señal con ruido en verde, la referencia
+// Espectro de la salida de la cadena en verde, la referencia
 // limpia en gris y, si se pide, el ruido solo en naranja. Eje de
 // frecuencia logarítmico de 0,1 a 500 Hz.
 export function SpectrumView({
@@ -111,7 +111,7 @@ export function SpectrumView({
     g.textAlign = 'right';
     g.fillStyle = COLORS.trace;
     const snr = Number.isFinite(s.snr) ? `${dec(s.snr, 1)} dB` : '∞';
-    g.fillText(`SNR de entrada ${snr}`, w - 10, 20);
+    g.fillText(`SNR ${snr}`, w - 10, 20);
     g.textAlign = 'left';
   });
 

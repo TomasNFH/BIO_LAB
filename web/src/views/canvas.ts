@@ -78,6 +78,7 @@ export const COLORS = {
   traceHead: '#c8ffd4',
   reference: 'rgba(200, 202, 210, 0.55)',
   warning: '#f0a848',
+  danger: '#f26b5b',
   noise: '#f0a848',
   highlight: 'rgba(240, 168, 72, 0.12)',
 };

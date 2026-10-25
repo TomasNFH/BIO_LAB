@@ -96,8 +96,10 @@ rechaza según su CMRR.
 ### Amplificador de instrumentación (3 op-amps)
 
 - Ganancia `G = (1 + 2R/Rg) · (R3/R2)`, editable por componentes.
-- **CMRR** finito y ajustable (p. ej. 60–120 dB), y desequilibrio de
-  resistencias que lo empeora.
+- **CMRR** finito: sale del desequilibrio entre R3 y R3' en la etapa 2
+  (perilla de error, 0,01 % a 10 %), y mejora al subir la ganancia de la
+  etapa 1. El monitor muestra la salida referida a la entrada (dividida por
+  la ganancia), como un monitor real.
 - Saturación a las tensiones de alimentación: con offset de electrodo de
   300 mV y ganancia 1000 la salida satura. Enseña por qué la ganancia se
   reparte entre etapas con un pasa altos en el medio.

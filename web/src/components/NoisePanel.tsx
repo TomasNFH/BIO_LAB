@@ -67,9 +67,10 @@ export function NoisePanel({ settings, onChange, onFocusNoise }: Props) {
           'mains',
           'Red eléctrica',
           `${mains.freq} Hz${mains.harmonics ? ' y armónicos impares' : ''}`,
-          'Los cables y aparatos cercanos inducen la frecuencia de la red en el cuerpo y en los cables de los electrodos. Es una senoidal fija: una línea angosta en el espectro.',
+          'Los cables y aparatos cercanos inducen la red en el cuerpo: todo el cuerpo sube y baja cientos de mV a la vez (modo común), y una parte pequeña llega distinta a cada electrodo (diferencial). El amplificador resta los electrodos, así que el modo común se cancela salvo lo que deja pasar su CMRR. En el espectro, una línea angosta.',
           <>
-            <Knob label="Amplitud" size="small" value={mains.level} min={0} max={1} step={0.01} defaultValue={DEFAULT_NOISE.mains.level} format={mv} onChange={(level) => edit('mains', { level })} />
+            <Knob label="Diferencial" size="small" value={mains.level} min={0} max={1} step={0.01} defaultValue={DEFAULT_NOISE.mains.level} format={mv} onChange={(level) => edit('mains', { level })} />
+            <Knob label="Modo común" size="small" value={mains.common} min={0} max={1000} step={10} defaultValue={DEFAULT_NOISE.mains.common} format={mvBig} onChange={(common) => edit('mains', { common })} />
             <div className="noise-switches">
               <div className="seg">
                 {([50, 60] as const).map((f) => (

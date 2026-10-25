@@ -91,6 +91,15 @@ export function MonitorView({ engine, options }: { engine: BioEngine; options: M
     g.textAlign = 'right';
     g.fillText(`FC ${dec(engine.ecg.bpmAt(now), 0)} lpm`, w - 10, 22);
 
+    // Aviso de saturación del amplificador (en el último medio segundo).
+    if (engine.amp.on && engine.amp.saturatedWithin(fs / 2)) {
+      g.font = '600 13px system-ui, sans-serif';
+      g.fillStyle = COLORS.danger;
+      g.textAlign = 'left';
+      g.fillText('● Amplificador saturado', 10, 22);
+      g.textAlign = 'right';
+    }
+
     // Si la señal se va de la pantalla (por ejemplo con offset de
     // continua), avisar hacia dónde y cuánto vale.
     if (end > start) {

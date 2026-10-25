@@ -3,7 +3,9 @@ import { makeRandom } from './random';
 
 export type NoiseSettings = {
   enabled: boolean; // interruptor general
-  mains: { on: boolean; level: number; freq: 50 | 60; harmonics: boolean }; // mV de pico
+  // level: parte diferencial (mV de pico); common: modo común, igual en los
+  // dos electrodos (mV de pico).
+  mains: { on: boolean; level: number; common: number; freq: 50 | 60; harmonics: boolean };
   wander: { on: boolean; level: number; breath: number }; // mV de pico, Hz
   emg: { on: boolean; level: number; bursts: boolean }; // mV eficaces
   white: { on: boolean; level: number }; // mV eficaces
@@ -15,7 +17,7 @@ export type NoiseId = Exclude<keyof NoiseSettings, 'enabled'>;
 
 export const DEFAULT_NOISE: NoiseSettings = {
   enabled: true,
-  mains: { on: true, level: 0.15, freq: 50, harmonics: false },
+  mains: { on: true, level: 0.05, common: 200, freq: 50, harmonics: false },
   wander: { on: true, level: 0.3, breath: 0.25 },
   emg: { on: true, level: 0.03, bursts: true },
   white: { on: true, level: 0.01 },
@@ -58,7 +60,9 @@ function measureRms(make: () => { process: (x: number) => number }, seed: number
 type MotionEvent = { t0: number; a: number; tau: number };
 
 // Suma de ruidos que se agrega a la señal limpia. Cada ruido tiene su
-// propio modelo; el nivel de cada uno está en mV en la entrada.
+// propio modelo; el nivel de cada uno está en mV en la entrada. sample()
+// devuelve la parte diferencial (entre los dos electrodos) y deja en
+// `common` la parte de modo común (la misma en los dos).
 export class NoiseSource {
   private settings: NoiseSettings;
   private random = makeRandom(7);
@@ -70,6 +74,7 @@ export class NoiseSource {
   private wanderLp2: OnePoleLowpass;
   private wanderScale: number;
   private motionEvents: MotionEvent[] = [];
+  common = 0; // modo común de la última muestra, mV
 
   constructor(
     private fs: number,
@@ -106,11 +111,15 @@ export class NoiseSource {
 
     // Interferencia de la red eléctrica (50 o 60 Hz), con armónicos impares
     // si los aparatos cercanos deforman la corriente.
+    // El cuerpo entero sube y baja con la red (modo común); una parte
+    // pequeña llega distinta a cada electrodo (diferencial).
+    let common = 0;
     if (s.mains.on) {
       const w = 2 * Math.PI * s.mains.freq * t;
       let m = Math.sin(w);
       if (s.mains.harmonics) m += 0.35 * Math.sin(3 * w + 0.4) + 0.15 * Math.sin(5 * w + 1.1);
       v += s.mains.level * m;
+      common = s.mains.common * m;
     }
 
     // Deriva de la línea de base: la respiración (senoidal lenta) más un
@@ -152,6 +161,7 @@ export class NoiseSource {
       }
     }
 
+    this.common = s.enabled ? common : 0;
     return s.enabled ? v : 0;
   }
 }

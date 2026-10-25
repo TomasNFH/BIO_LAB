@@ -1,4 +1,5 @@
 import { DEFAULT_ECG, EcgSource, type EcgSettings } from './ecg';
+import { DEFAULT_AMP, InstrumentationAmp, type AmpSettings } from './amp';
 import { DEFAULT_NOISE, NoiseSource, type NoiseSettings } from './noise';
 
 export const FS = 1000; // frecuencia de muestreo, Hz
@@ -11,12 +12,18 @@ export type EngineState = { playing: boolean };
 // Genera la señal en tiempo real fuera de React: en cada cuadro produce
 // las muestras del tiempo transcurrido y las guarda en búferes circulares
 // que las vistas leen. Guarda dos señales: la referencia limpia (el ECG
-// solo) y la salida (ECG más ruido). Como el laboratorio conoce la
+// solo) y la salida de la cadena. Como el laboratorio conoce la
 // referencia, puede medir cuánto se aleja la salida de ella.
+//
+// La salida se guarda referida a la entrada: la tensión del amplificador
+// dividida por su ganancia, en mV, como la muestra un monitor de ECG. Así
+// la escala no cambia al cambiar la ganancia, y la saturación se ve como
+// un recorte.
 export class BioEngine {
   readonly fs = FS;
   readonly ecg = new EcgSource(DEFAULT_ECG);
   readonly noise = new NoiseSource(FS, DEFAULT_NOISE);
+  readonly amp = new InstrumentationAmp(DEFAULT_AMP);
   private clean = new Float32Array(FS * BUFFER_SECONDS);
   private out = new Float32Array(FS * BUFFER_SECONDS);
   private count = 0; // muestras generadas desde el inicio
@@ -73,6 +80,10 @@ export class BioEngine {
     this.noise.set(settings);
   }
 
+  setAmp(settings: AmpSettings) {
+    this.amp.set(settings);
+  }
+
   play() {
     if (this.playing) return;
     this.playing = true;
@@ -110,7 +121,15 @@ export class BioEngine {
       const t = this.count / FS;
       const clean = this.ecg.sample(t);
       this.clean[this.count % len] = clean;
-      this.out[this.count % len] = clean + this.noise.sample(t);
+      // Tensión diferencial entre los electrodos y modo común, en mV.
+      const vd = clean + this.noise.sample(t);
+      const vcm = this.noise.common;
+      let out = vd;
+      if (this.amp.on) {
+        const vo = this.amp.process((vcm + vd / 2) / 1000, (vcm - vd / 2) / 1000);
+        out = (vo * 1000) / this.amp.gain;
+      }
+      this.out[this.count % len] = out;
       this.count++;
     }
     this.ecg.prune(this.time - BUFFER_SECONDS);

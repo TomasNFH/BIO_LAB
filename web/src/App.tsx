@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { BioEngine, type EngineState } from './engine/BioEngine';
+import { DEFAULT_AMP, type AmpSettings } from './engine/amp';
 import { DEFAULT_ECG, type EcgSettings } from './engine/ecg';
 import { DEFAULT_NOISE, noiseBand, type NoiseId, type NoiseSettings } from './engine/noise';
+import { AmpPanel } from './components/AmpPanel';
 import { ChainStrip } from './components/ChainStrip';
 import { fmt, Knob } from './components/Knob';
 import { Logo } from './components/Logo';
@@ -31,6 +33,7 @@ export function App() {
   const [ecg, setEcg] = useState<EcgSettings>(DEFAULT_ECG);
   const [noise, setNoise] = useState<NoiseSettings>(DEFAULT_NOISE);
   const [focusNoise, setFocusNoise] = useState<NoiseId | null>(null);
+  const [amp, setAmp] = useState<AmpSettings>(DEFAULT_AMP);
   const [monitor, setMonitor] = useState<MonitorOptions>(DEFAULT_MONITOR);
   const [spectrum, setSpectrum] = useState<SpectrumOptions>(DEFAULT_SPECTRUM);
 
@@ -42,6 +45,7 @@ export function App() {
 
   useEffect(() => eng.setEcg(ecg), [eng, ecg]);
   useEffect(() => eng.setNoise(noise), [eng, noise]);
+  useEffect(() => eng.setAmp(amp), [eng, amp]);
 
   // Espacio: reproducir / pausar.
   useEffect(() => {
@@ -66,7 +70,7 @@ export function App() {
       <header className="header">
         <Logo />
         <h1>Bio Lab</h1>
-        <span className="phase">Etapa 2: ruido ajustable</span>
+        <span className="phase">Etapa 3: amplificador de instrumentación</span>
       </header>
 
       <ChainStrip />
@@ -116,8 +120,9 @@ export function App() {
             </div>
             <p className="muted small">
               Cuadrícula de papel ECG: cada cuadro chico es 1 mm y cada grande 5 mm. A 25 mm/s un
-              cuadro grande son 0,2 s; a 10 mm/mV, dos cuadros grandes son 1 mV. En verde la señal
-              con ruido, en gris el ECG limpio. Espacio pausa el monitor.
+              cuadro grande son 0,2 s; a 10 mm/mV, dos cuadros grandes son 1 mV. En verde la salida
+              de la cadena referida a la entrada (dividida por la ganancia), en gris el ECG limpio.
+              Espacio pausa el monitor.
             </p>
           </section>
 
@@ -206,6 +211,8 @@ export function App() {
           </section>
 
           <NoisePanel settings={noise} onChange={setNoise} onFocusNoise={setFocusNoise} />
+
+          <AmpPanel engine={eng} settings={amp} onChange={setAmp} />
         </div>
       </div>
     </div>
