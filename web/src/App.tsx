@@ -173,7 +173,6 @@ export function App() {
       <header className="header">
         <Logo />
         <h1>Bio Lab</h1>
-        <span className="phase">Etapa 9: QRS, pierna derecha y EMG</span>
       </header>
 
       <div className="layout">
