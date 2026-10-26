@@ -401,6 +401,43 @@ input.text.short { flex: 0 0 90px; margin: 0 4px; }
 .out-track-end.left { left: 10px; }
 .out-track-end.right { right: 10px; }
 .out-car { position: absolute; bottom: 18px; transform: translateX(-50%); z-index: 1; }
+
+/* Pantalla flotante de la salida (contador o autito), abajo y al centro. La
+   página le deja lugar con --dock-h, que el componente mantiene al día. */
+.app { padding-bottom: calc(64px + var(--dock-h, 0px)); }
+.out-dock {
+  position: fixed; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 30;
+  width: min(460px, calc(100vw - 24px)); padding: 10px 12px 12px; border-radius: 16px;
+  background: var(--panel); border: 2px solid var(--espresso); box-shadow: var(--shadow-hard), 0 10px 30px rgba(61, 43, 38, 0.18);
+  animation: dock-in 0.25s ease-out;
+}
+@keyframes dock-in { from { transform: translate(-50%, 24px); opacity: 0; } }
+.out-dock.min { padding-bottom: 10px; }
+.dock-head { display: flex; align-items: center; gap: 8px; }
+.dock-title { font-family: var(--font-serif); font-style: italic; font-size: 1.2rem; }
+.dock-branch { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-right: auto; }
+.dock-summary { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-display); font-weight: 600; font-variant-numeric: tabular-nums; }
+.dock-btn { width: 26px; height: 26px; padding: 0; border-radius: 50%; line-height: 1; font-size: 0.9rem; background: transparent; }
+.dock-body { margin-top: 8px; }
+.dock-row { display: flex; align-items: center; gap: 12px; }
+.dock-row .out-counter { flex: none; padding: 8px 14px; box-shadow: var(--shadow-hard-sm); }
+.out-dock .out-digits { font-size: 2.2rem; }
+.out-led.small { width: 10px; height: 10px; border-width: 1.5px; }
+.dock-readouts { flex: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin: 0; }
+.dock-readouts dt { font-size: 0.7rem; color: var(--muted); }
+.dock-readouts dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.dock-readouts button { padding: 4px 10px; font-size: 0.8rem; }
+.out-dock .out-track { height: 64px; box-shadow: var(--shadow-hard-sm); }
+.out-dock .out-car { bottom: 12px; }
+.car-foot { justify-content: space-between; margin-top: 8px; }
+.car-foot button { padding: 4px 10px; font-size: 0.8rem; }
+.dock-dir { font-weight: 600; font-size: 0.85rem; }
+.dock-needs { margin: 0 0 8px; font-size: 0.8rem; color: var(--danger); }
+.dock-link { padding: 2px 8px; font-size: 0.78rem; }
+@media (min-width: 1000px) {
+  /* La columna fija de las vistas termina arriba del dock. */
+  .views-col { max-height: calc(100vh - 24px - var(--dock-h, 0px)); }
+}
 .ch-presets { padding: 4px 10px; font-size: 0.8rem; }
 .ch-presets.on { background: var(--espresso); border-color: var(--espresso); color: var(--cream-light); }
 

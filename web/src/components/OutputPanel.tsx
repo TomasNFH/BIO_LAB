@@ -13,20 +13,28 @@ const carLeft = (x: number) => `${8 + x * 84}%`;
 // Cuánto queda prendida la luz del contador después de cada pulso.
 const LED_SECONDS = 0.12;
 
+// Umbral que necesita cada dispositivo (el monitor, ninguno).
+const NEEDS: Partial<Record<OutputDevice, ThresholdMode>> = { counter: 'one', car: 'two' };
+
+// ¿La rama tiene lo que el dispositivo necesita?
+const ready = (device: OutputDevice, chain: ChainSettings) => {
+  const mode = NEEDS[device];
+  return !mode || (chain.adc.on && chain.dsp.thr.on && chain.dsp.thr.mode === mode);
+};
+
 type Props = {
-  engine: BioEngine;
   branch: Branch; // la rama que alimenta la salida (la del monitor)
   chain: ChainSettings;
   onChain: (s: ChainSettings) => void;
   source: SourceKind;
-  ecgBpm: number;
   output: OutputSettings;
   onOutput: (s: OutputSettings) => void;
 };
 
 // La salida de la cadena: con qué se usa la señal ya procesada. La toma de
-// la rama que se ve en el monitor.
-export function OutputPanel({ engine, branch, chain, onChain, source, ecgBpm, output, onOutput }: Props) {
+// la rama que se ve en el monitor. El contador y el autito se ven en la
+// pantalla flotante de abajo (OutputDock); acá se eligen y se preparan.
+export function OutputPanel({ branch, chain, onChain, source, output, onOutput }: Props) {
   const device = output.device;
   const B = branch.toUpperCase();
 
@@ -43,7 +51,8 @@ export function OutputPanel({ engine, branch, chain, onChain, source, ecgBpm, ou
             El monitor sólo la muestra. El contador de pulso cuenta los pulsos del umbral (uno por
             onda R) y calcula las lpm. El autito usa el umbral de dos niveles con el EOG: mirar a la
             derecha lo lleva hacia adelante, mirar a la izquierda hacia atrás y con la mirada al
-            centro se queda quieto.
+            centro se queda quieto. Los dos se ven abajo, en una pantalla flotante que queda
+            siempre a la vista.
           </p>
         </Help>
       </div>
@@ -56,26 +65,17 @@ export function OutputPanel({ engine, branch, chain, onChain, source, ecgBpm, ou
         ))}
       </div>
 
-      {device === 'monitor' && (
+      {device === 'monitor' ? (
         <p className="muted small">
           La salida es la pantalla: el monitor de arriba muestra la rama {B} tal como sale de la
           cadena (después del ADC). Es el uso más común de un equipo de ECG o de EOG.
         </p>
-      )}
-
-      {device === 'counter' && (
+      ) : (
         <>
-          <Needs device="counter" chain={chain} branch={branch} onChain={onChain} />
-          {source !== 'ecg' && source !== 'rec' && <p className="muted small">El contador de pulso está pensado para el ECG.</p>}
-          <Counter engine={engine} branch={branch} realBpm={source === 'ecg' ? ecgBpm : null} />
-        </>
-      )}
-
-      {device === 'car' && (
-        <>
-          <Needs device="car" chain={chain} branch={branch} onChain={onChain} />
-          {source !== 'eog' && <p className="muted small">El autito está pensado para el EOG: se maneja con la mirada.</p>}
-          <Car engine={engine} branch={branch} />
+          <Needs device={device} chain={chain} branch={branch} onChain={onChain} />
+          {device === 'counter' && source !== 'ecg' && source !== 'rec' && <p className="muted small">El contador de pulso está pensado para el ECG.</p>}
+          {device === 'car' && source !== 'eog' && <p className="muted small">El autito está pensado para el EOG: se maneja con la mirada.</p>}
+          <p className="muted small">Se ve abajo, en la pantalla flotante, con la rama {B}.</p>
         </>
       )}
     </section>
@@ -85,9 +85,9 @@ export function OutputPanel({ engine, branch, chain, onChain, source, ecgBpm, ou
 // Lo que el dispositivo necesita de la etapa digital, con un botón que lo
 // prepara.
 function Needs({ device, chain, branch, onChain }: { device: OutputDevice; chain: ChainSettings; branch: Branch; onChain: (s: ChainSettings) => void }) {
-  const mode: ThresholdMode = device === 'car' ? 'two' : 'one';
+  const mode = NEEDS[device];
+  if (!mode || ready(device, chain)) return null;
   const thr = chain.dsp.thr;
-  if (chain.adc.on && thr.on && thr.mode === mode) return null;
   const what = mode === 'one' ? 'el umbral de un nivel' : 'el umbral de dos niveles';
   return (
     <div className="out-needs">
@@ -106,43 +106,125 @@ function Needs({ device, chain, branch, onChain }: { device: OutputDevice; chain
   );
 }
 
+type DockProps = {
+  engine: BioEngine;
+  branch: Branch;
+  chain: ChainSettings;
+  source: SourceKind;
+  ecgBpm: number;
+  output: OutputSettings;
+  onOutput: (s: OutputSettings) => void;
+  onOpenSettings: () => void; // abre la carta de Salida
+};
+
+// Pantalla flotante abajo y al centro: el contador de pulso o el autito,
+// siempre a la vista mientras se tocan los bloques. Se puede achicar.
+// Avisa su alto en --dock-h para que la página le deje lugar.
+export function OutputDock({ engine, branch, chain, source, ecgBpm, output, onOutput, onOpenSettings }: DockProps) {
+  const device = output.device;
+  const [min, setMin] = useState(false);
+  const ref = useRef<HTMLElement>(null);
+  const shown = device !== 'monitor';
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const el = ref.current;
+    if (!shown || !el) {
+      root.style.setProperty('--dock-h', '0px');
+      return;
+    }
+    const ro = new ResizeObserver(() => root.style.setProperty('--dock-h', `${el.offsetHeight + 16}px`));
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      root.style.setProperty('--dock-h', '0px');
+    };
+  }, [shown]);
+
+  if (!shown) return null;
+  const label = DEVICES.find((d) => d.id === device)?.label;
+
+  return (
+    <aside ref={ref} className={`out-dock ${min ? 'min' : ''}`} aria-label={`Salida: ${label}`}>
+      <div className="dock-head">
+        <span className="dock-title">{label}</span>
+        <span className="dock-branch">rama {branch.toUpperCase()}</span>
+        {min && device === 'counter' && <CounterSummary engine={engine} branch={branch} />}
+        <button className="dock-btn" onClick={() => setMin((m) => !m)} aria-label={min ? 'Agrandar' : 'Achicar'} title={min ? 'Agrandar' : 'Achicar'}>
+          {min ? '▴' : '▾'}
+        </button>
+        <button className="dock-btn" onClick={() => onOutput({ device: 'monitor' })} aria-label="Cerrar (la salida vuelve al monitor)" title="Cerrar (la salida vuelve al monitor)">
+          ×
+        </button>
+      </div>
+      {!min && (
+        <div className="dock-body">
+          {!ready(device, chain) && (
+            <p className="dock-needs">
+              Falta el umbral de la rama {branch.toUpperCase()}.{' '}
+              <button className="dock-link" onClick={onOpenSettings}>
+                Prepararlo
+              </button>
+            </p>
+          )}
+          {device === 'counter' && <Counter engine={engine} branch={branch} realBpm={source === 'ecg' ? ecgBpm : null} />}
+          {device === 'car' && <Car engine={engine} branch={branch} />}
+        </div>
+      )}
+    </aside>
+  );
+}
+
 function readCounter(engine: BioEngine, branch: Branch) {
   const p = engine.pulsesOf(branch);
   const last = p.length ? p[p.length - 1] : -Infinity;
   return { count: engine.countOf(branch), rate: engine.rateOf(branch), lit: engine.sampleCount - last < LED_SECONDS * engine.fs };
 }
 
-// Contador de pulso: display de tres cifras, una luz por latido y las lpm.
-function Counter({ engine, branch, realBpm }: { engine: BioEngine; branch: Branch; realBpm: number | null }) {
+function useCounter(engine: BioEngine, branch: Branch) {
   const [s, setS] = useState(() => readCounter(engine, branch));
   useEffect(() => {
     const id = setInterval(() => setS(readCounter(engine, branch)), 50);
     return () => clearInterval(id);
   }, [engine, branch]);
+  return s;
+}
 
+// Achicado: la cuenta y las lpm en la barra.
+function CounterSummary({ engine, branch }: { engine: BioEngine; branch: Branch }) {
+  const s = useCounter(engine, branch);
   return (
-    <>
+    <span className="dock-summary">
+      <span className={`out-led small ${s.lit ? 'on' : ''}`} aria-hidden="true" />
+      {String(s.count % 1000).padStart(3, '0')} · {s.rate === null ? '—' : `${dec(s.rate, 0)} lpm`}
+    </span>
+  );
+}
+
+// Contador de pulso: display de tres cifras, una luz por latido y las lpm.
+function Counter({ engine, branch, realBpm }: { engine: BioEngine; branch: Branch; realBpm: number | null }) {
+  const s = useCounter(engine, branch);
+  return (
+    <div className="dock-row">
       <div className="out-counter" role="status" aria-label={`${s.count} pulsos`}>
         <span className={`out-led ${s.lit ? 'on' : ''}`} aria-hidden="true" />
         <span className="out-digits">{String(s.count % 1000).padStart(3, '0')}</span>
         <span className="out-unit">pulsos</span>
       </div>
-      <dl className="readouts">
+      <dl className="dock-readouts">
         <div>
-          <dt>Frecuencia medida</dt>
+          <dt>Medida</dt>
           <dd>{s.rate === null ? '—' : `${dec(s.rate, 0)} lpm`}</dd>
         </div>
         {realBpm !== null && (
           <div>
-            <dt>Frecuencia real del ECG</dt>
+            <dt>Real</dt>
             <dd>{dec(realBpm, 0)} lpm</dd>
           </div>
         )}
-      </dl>
-      <div className="preset-save">
         <button onClick={() => engine.resetCount()}>Poner en cero</button>
-      </div>
-    </>
+      </dl>
+    </div>
   );
 }
 
@@ -193,13 +275,8 @@ function Car({ engine, branch }: { engine: BioEngine; branch: Branch }) {
           </svg>
         </div>
       </div>
-      <dl className="readouts">
-        <div>
-          <dt>Mirada</dt>
-          <dd>{DIRECTION[dir] ?? '—'}</dd>
-        </div>
-      </dl>
-      <div className="preset-save">
+      <div className="dock-row car-foot">
+        <span className="dock-dir">{DIRECTION[dir] ?? '—'}</span>
         <button
           onClick={() => {
             pos.current = 0.5;

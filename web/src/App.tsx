@@ -17,7 +17,7 @@ import { NoisePanel } from './components/NoisePanel';
 import { NotchPanel } from './components/NotchPanel';
 import { DigitalLpPanel, ThresholdPanel } from './components/DigitalPanel';
 import { bandOf, withBand } from './components/bands';
-import { OutputPanel } from './components/OutputPanel';
+import { OutputDock, OutputPanel } from './components/OutputPanel';
 import { DEFAULT_OUTPUT, type OutputSettings } from './output';
 import { PresetPanel } from './components/PresetPanel';
 import { SourcePanel } from './components/SourcePanel';
@@ -467,16 +467,7 @@ export function App() {
             )}
 
             {selection === 'output' && (
-              <OutputPanel
-                engine={eng}
-                branch={branch}
-                chain={chain}
-                onChain={(s) => setChain(branch, s)}
-                source={source}
-                ecgBpm={ecg.bpm}
-                output={output}
-                onOutput={setOutput}
-              />
+              <OutputPanel branch={branch} chain={chain} onChain={(s) => setChain(branch, s)} source={source} output={output} onOutput={setOutput} />
             )}
 
             {block === 'adc' && (
@@ -485,6 +476,18 @@ export function App() {
           </div>
         </div>
       </div>
+
+      {/* Contador de pulso o autito: siempre a la vista, abajo y al centro. */}
+      <OutputDock
+        engine={eng}
+        branch={branch}
+        chain={chain}
+        source={source}
+        ecgBpm={ecg.bpm}
+        output={output}
+        onOutput={setOutput}
+        onOpenSettings={() => select('output')}
+      />
     </div>
   );
 }
