@@ -10,7 +10,9 @@ export type StagesOptions = {
 
 export const DEFAULT_STAGES: StagesOptions = { range: 2, reference: true };
 
-const ROWS: { point: TestPoint; label: string }[] = [
+type Row = { point: TestPoint; label: string; logic?: boolean };
+
+const ROWS: Row[] = [
   { point: 'input', label: 'Entrada diferencial (V+ − V−)' },
   { point: 'amp', label: 'Amplificador (referido a la entrada)' },
   { point: 'hp', label: 'Tras el pasa altos' },
@@ -29,14 +31,24 @@ export function StagesView({ engine, options, branch }: { engine: BioEngine; opt
     const fs = engine.fs;
     const end = engine.sampleCount;
     const start = Math.max(engine.oldest, end - SECONDS * fs);
-    const rowH = h / ROWS.length;
+    // Las filas de la etapa digital aparecen cuando sus bloques trabajan.
+    const chain = engine.chains[branch];
+    const dsp = chain.dsp.config;
+    const rows: Row[] = [...ROWS];
+    if (chain.adc.on && dsp.lp.on) rows.push({ point: 'dlp', label: 'Tras el pasa bajos digital' });
+    if (chain.adc.on && dsp.thr.on) {
+      const label = dsp.thr.mode === 'one' ? 'Umbral (salida lógica: 0 o 1)' : 'Umbral (izquierda −1 · centro 0 · derecha +1)';
+      rows.push({ point: 'thr', label, logic: true });
+    }
+    const rowH = h / rows.length;
     const xOf = (i: number) => ((i - (end - SECONDS * fs)) / (SECONDS * fs)) * w;
 
-    ROWS.forEach(({ point, label }, r) => {
+    rows.forEach(({ point, label, logic }, r) => {
       const top = r * rowH;
       const mid = top + rowH / 2;
       const half = rowH / 2 - 4;
-      const yOf = (v: number) => mid - (v / options.range) * half;
+      // La salida del umbral no está en mV: 1 ocupa casi media fila.
+      const yOf = (v: number) => mid - (logic ? v * 0.7 : v / options.range) * half;
 
       // Marco de la fila, línea de 0 y marcas de 1 s.
       g.strokeStyle = COLORS.grid;
@@ -74,7 +86,7 @@ export function StagesView({ engine, options, branch }: { engine: BioEngine; opt
         }
         g.stroke();
       };
-      if (options.reference) trace('clean', COLORS.reference, 1);
+      if (options.reference && !logic) trace('clean', COLORS.reference, 1);
       trace(point, BRANCH_COLORS[branch], 1.3);
       g.restore();
 
@@ -85,7 +97,7 @@ export function StagesView({ engine, options, branch }: { engine: BioEngine; opt
       // Si la señal está fuera de la fila, avisar hacia dónde y cuánto.
       if (end > start) {
         const v = engine.tapAt(point, end - 1, branch);
-        if (Math.abs(v) > options.range) {
+        if (!logic && Math.abs(v) > options.range) {
           g.font = font(11, 600);
           g.fillStyle = COLORS.warning;
           g.textAlign = 'right';

@@ -15,6 +15,7 @@ import { MetricsTable } from './components/MetricsTable';
 import { Help, Popover } from './components/Help';
 import { NoisePanel } from './components/NoisePanel';
 import { NotchPanel } from './components/NotchPanel';
+import { DigitalLpPanel, ThresholdPanel } from './components/DigitalPanel';
 import { OutputPanel } from './components/OutputPanel';
 import { PresetPanel } from './components/PresetPanel';
 import { SourcePanel } from './components/SourcePanel';
@@ -446,6 +447,19 @@ export function App() {
             {block === 'lp' && <FilterPanel kind="lp" settings={chain.lp} onChange={(lp) => editChain({ lp })} />}
 
             {block === 'notch' && <NotchPanel settings={chain.notch} onChange={(notch) => editChain({ notch })} />}
+
+            {block === 'dlp' && <DigitalLpPanel chain={chain} onChange={(dsp) => editChain({ dsp })} />}
+
+            {block === 'thr' && (
+              <ThresholdPanel
+                engine={eng}
+                branch={branch}
+                chain={chain}
+                source={source}
+                eogSensitivity={eog.sensitivity}
+                onChange={(dsp) => editChain({ dsp })}
+              />
+            )}
 
             {selection === 'output' && <OutputPanel chains={chains} onChain={setChain} />}
 

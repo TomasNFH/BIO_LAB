@@ -356,6 +356,13 @@ input.text.short { flex: 0 0 90px; margin: 0 4px; }
 .ch-branch.live { border-color: var(--espresso); }
 .ch-branch.live.a { background: var(--accent-fill); color: var(--text); }
 .ch-branch.live.b { background: var(--branch-b-fill); color: var(--text); }
+/* Separador entre la parte analógica y la digital (después del ADC). */
+.ch-sep {
+  grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; margin: 2px 0;
+  font-size: 0.68rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+}
+.ch-sep::before, .ch-sep::after { content: ''; flex: 1; border-top: 1.5px dashed var(--border-strong); }
+
 /* Copiar ajustes: una pastilla entre «Rama A» y «Rama B». */
 .ch-branches { position: relative; }
 .ch-copy {

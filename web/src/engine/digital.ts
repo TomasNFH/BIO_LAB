@@ -53,6 +53,11 @@ export class DigitalStage {
     this.settings = structuredClone(settings);
   }
 
+  // Ajustes actuales (para dibujar los niveles).
+  get config(): Readonly<DigitalSettings> {
+    return this.settings;
+  }
+
   set(settings: DigitalSettings) {
     const was = this.settings.thr;
     this.settings = structuredClone(settings);

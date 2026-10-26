@@ -116,6 +116,52 @@ export function MonitorView({ engine, options, branch }: { engine: BioEngine; op
       band((i) => engine.sampleAt(i, branch), COLORS.envelope, [], 2.2);
     }
 
+    // Etapa digital: la señal que compara el umbral (si pasa por el pasa
+    // bajos digital), los niveles punteados y, arriba, su salida: un trazo
+    // por cada pulso o el escalón izquierda/centro/derecha.
+    const chainNow = engine.chains[branch];
+    const dsp = chainNow.dsp.config;
+    if (chainNow.adc.on && dsp.lp.on) trace((i) => engine.tapAt('dlp', i, branch), COLORS.lp, 1.4);
+    if (chainNow.adc.on && dsp.thr.on) {
+      const two = dsp.thr.mode === 'two';
+      const levels = two
+        ? [
+            { v: dsp.thr.low, name: 'izq' },
+            { v: dsp.thr.high, name: 'der' },
+          ]
+        : [{ v: dsp.thr.level, name: 'umbral' }];
+      g.strokeStyle = COLORS.warning;
+      g.fillStyle = COLORS.warning;
+      g.lineWidth = 1.4;
+      g.setLineDash([6, 4]);
+      g.font = font(10, 600);
+      g.textAlign = 'right';
+      for (const { v, name } of levels) {
+        const y = Math.round(yOf(v)) + 0.5;
+        g.beginPath();
+        g.moveTo(0, y);
+        g.lineTo(w, y);
+        g.stroke();
+        g.fillText(name, w - 6, y - 4);
+      }
+      g.setLineDash([]);
+      g.textAlign = 'left';
+      if (two) {
+        const lane = 26; // centro de la franja de la salida
+        trace((i) => (mid - (lane - engine.tapAt('thr', i, branch) * 8)) / pxPerMv, COLORS.warning, 2);
+      } else {
+        g.lineWidth = 2;
+        g.beginPath();
+        for (const p of engine.pulsesOf(branch)) {
+          if (p < start || p >= end) continue;
+          const x = Math.round(xOf(p)) + 0.5;
+          g.moveTo(x, 18);
+          g.lineTo(x, 34);
+        }
+        g.stroke();
+      }
+    }
+
     // Un triángulo sobre cada QRS que encontró el detector de la rama; los
     // de búsqueda hacia atrás, huecos.
     const qrs = engine.qrs[branch];

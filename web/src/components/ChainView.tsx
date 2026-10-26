@@ -14,8 +14,9 @@ import { outputName, outputRange } from './OutputPanel';
 import { dec } from './Knob';
 import { hz } from './units';
 
-// Bloques de cada rama, en el orden de la señal.
-export type BlockId = 'amp' | 'drl' | 'hp' | 'lp' | 'notch' | 'adc';
+// Bloques de cada rama, en el orden de la señal: la parte analógica, el ADC
+// y la etapa digital (pasa bajos digital y umbral).
+export type BlockId = 'amp' | 'drl' | 'hp' | 'lp' | 'notch' | 'adc' | 'dlp' | 'thr';
 // Lo que se abre debajo de la cadena: un bloque común o el de una rama.
 export type Selection = 'presets' | 'source' | 'noise' | 'output' | { branch: Branch; block: BlockId };
 
@@ -27,6 +28,13 @@ const BLOCKS: { id: BlockId; label: string }[] = [
   { id: 'notch', label: 'Notch' },
   { id: 'adc', label: 'ADC' },
 ];
+
+const DIGITAL_BLOCKS: { id: BlockId; label: string }[] = [
+  { id: 'dlp', label: 'Pasa bajos digital' },
+  { id: 'thr', label: 'Umbral' },
+];
+
+const mv = (v: number) => `${dec(v, 2)} mV`;
 
 const filterText = (f: FilterSettings) => `${hz(cutoff(f))} · ${f.order === 1 ? 'RC' : 'Sallen-Key'}`;
 
@@ -47,7 +55,28 @@ function describe(s: ChainSettings, block: BlockId): { on: boolean; detail: stri
       return { on: s.notch.on, detail: `${s.notch.f0} Hz · Q ${dec(s.notch.q, s.notch.q < 10 ? 1 : 0)}` };
     case 'adc':
       return { on: s.adc.on, detail: `${s.adc.fs} Hz · ${s.adc.bits} bits` };
+    // Sin ADC no hay muestras para la etapa digital.
+    case 'dlp':
+      return { on: s.dsp.lp.on && s.adc.on, detail: s.adc.on ? hz(s.dsp.lp.fc) : 'necesita el ADC' };
+    case 'thr': {
+      const t = s.dsp.thr;
+      const detail = !s.adc.on ? 'necesita el ADC' : t.mode === 'one' ? `1 nivel · ${mv(t.level)}` : `izq ${mv(t.low)} · der ${mv(t.high)}`;
+      return { on: t.on && s.adc.on, detail };
+    }
   }
+}
+
+// Interruptor de cada bloque (los digitales están dentro de `dsp`).
+function isOn(s: ChainSettings, block: BlockId) {
+  if (block === 'dlp') return s.dsp.lp.on;
+  if (block === 'thr') return s.dsp.thr.on;
+  return s[block].on;
+}
+
+function toggled(s: ChainSettings, block: BlockId): ChainSettings {
+  if (block === 'dlp') return { ...s, dsp: { ...s.dsp, lp: { ...s.dsp.lp, on: !s.dsp.lp.on } } };
+  if (block === 'thr') return { ...s, dsp: { ...s.dsp, thr: { ...s.dsp.thr, on: !s.dsp.thr.on } } };
+  return { ...s, [block]: { ...s[block], on: !s[block].on } };
 }
 
 const NOISE_IDS: NoiseId[] = ['mains', 'wander', 'emg', 'white', 'offset', 'motion'];
@@ -111,10 +140,32 @@ const Arrow = () => (
 export function ChainView(props: Props) {
   const { selection, onSelect, branch, chains, onChain, source, ecg, eog, emg, recording, noise, onNoise } = props;
   const isSel = (b: Branch, block: BlockId) => typeof selection === 'object' && selection.branch === b && selection.block === block;
-  const toggle = (b: Branch, block: BlockId) => {
-    const s = chains[b];
-    onChain(b, { ...s, [block]: { ...s[block], on: !s[block].on } });
-  };
+  const toggle = (b: Branch, block: BlockId) => onChain(b, toggled(chains[b], block));
+  const cells = (blocks: typeof BLOCKS) =>
+    blocks.map((blk) =>
+      BRANCHES.map((b) => {
+        const d = describe(chains[b], blk.id);
+        const on = isOn(chains[b], blk.id);
+        return (
+          <Cell
+            key={`${b}-${blk.id}`}
+            className={`branch-${b}`}
+            label={blk.label}
+            detail={d.on || !chains[b].adc.on ? d.detail : 'apagado'}
+            on={d.on}
+            selected={isSel(b, blk.id)}
+            onOpen={() => onSelect({ branch: b, block: blk.id })}
+            power={
+              <Power
+                on={on}
+                label={`${on ? 'Apagar' : 'Prender'} ${blk.label.toLowerCase()} de la rama ${b.toUpperCase()}`}
+                onClick={() => toggle(b, blk.id)}
+              />
+            }
+          />
+        );
+      }),
+    );
 
   const sourceDetail =
     source === 'ecg'
@@ -182,29 +233,12 @@ export function ChainView(props: Props) {
           </svg>
           {branch === 'a' ? 'A → B' : 'A ← B'}
         </button>
-        {BLOCKS.map((blk) =>
-          BRANCHES.map((b) => {
-            const d = describe(chains[b], blk.id);
-            return (
-              <Cell
-                key={`${b}-${blk.id}`}
-                className={`branch-${b}`}
-                label={blk.label}
-                detail={d.on ? d.detail : 'apagado'}
-                on={d.on}
-                selected={isSel(b, blk.id)}
-                onOpen={() => onSelect({ branch: b, block: blk.id })}
-                power={
-                  <Power
-                    on={d.on}
-                    label={`${d.on ? 'Apagar' : 'Prender'} ${blk.label.toLowerCase()} de la rama ${b.toUpperCase()}`}
-                    onClick={() => toggle(b, blk.id)}
-                  />
-                }
-              />
-            );
-          }),
-        )}
+        {cells(BLOCKS)}
+        {/* Desde acá, cuentas sobre las muestras del ADC. */}
+        <span className="ch-sep" aria-hidden="true">
+          Digital
+        </span>
+        {cells(DIGITAL_BLOCKS)}
       </div>
 
       {/* La salida, común a las dos ramas: termina la cadena; al tocarla se abre

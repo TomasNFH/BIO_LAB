@@ -14,10 +14,13 @@ const COLUMNS: { point: TestPoint; name: string; shared?: boolean }[] = [
   { point: 'lp', name: 'pasa_bajos_mV' },
   { point: 'notch', name: 'notch_mV' },
   { point: 'out', name: 'adc_mV' },
+  { point: 'dlp', name: 'pasa_bajos_digital_mV' },
+  { point: 'thr', name: 'umbral' },
 ];
 
 // Las últimas `seconds` de cada punto de prueba de las dos ramas, a 1 kHz,
-// en mV referidos a la entrada. Una fila por muestra; el tiempo arranca en
+// en mV referidos a la entrada (la columna del umbral es lógica: 0 y 1, o
+// −1, 0 y +1). Una fila por muestra; el tiempo arranca en
 // 0 en la primera.
 export function toCsv(engine: BioEngine, seconds: number, format: CsvFormat) {
   const sep = format === 'dot' ? ',' : ';';
