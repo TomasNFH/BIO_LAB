@@ -114,7 +114,7 @@ git tag v0.1.0 && git push origin v0.1.0
 | Filtros básicos y FFT | `web/src/engine/dsp.ts` |
 | Pierna derecha (DRL) | `web/src/engine/drl.ts`, `web/src/components/DrlPanel.tsx` |
 | Amplificador de instrumentación de tres op-amps | `web/src/engine/amp.ts`, `web/src/components/AmpPanel.tsx`, `web/src/views/AmpSchematic.tsx` |
-| Cadena de una rama (amplificador, filtros, notch, ADC) y ramas A/B | `web/src/engine/chain.ts`, `web/src/components/BranchBar.tsx` |
+| Cadena de una rama (amplificador, filtros, notch, ADC) y ramas A/B | `web/src/engine/chain.ts` |
 | Conversor A/D | `web/src/engine/adc.ts`, `web/src/components/AdcPanel.tsx` |
 | Filtros pasa altos, pasa bajos y notch | `web/src/engine/filters.ts`, `web/src/components/FilterPanel.tsx`, `web/src/components/NotchPanel.tsx`, `web/src/views/FilterSchematic.tsx` |
 | Métricas contra la señal limpia | `web/src/engine/metrics.ts`, `web/src/components/MetricsTable.tsx` |
@@ -126,7 +126,7 @@ git tag v0.1.0 && git push origin v0.1.0
 | Espectro de la salida, con SNR | `web/src/views/SpectrumView.tsx`, `web/src/views/spectrum.ts` |
 | Bode calculado y medido | `web/src/views/BodeView.tsx` |
 | Señal en cada etapa | `web/src/views/StagesView.tsx` |
-| Cadena de adquisición (bloques hechos y pendientes) | `web/src/components/ChainStrip.tsx` |
+| Cadena interactiva: cada bloque abre su panel, uno por vez | `web/src/components/ChainView.tsx` |
 
 ## Aviso
 

@@ -1,9 +1,22 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
-// Botón «?» que muestra una explicación al pasar el cursor, al llegar con el
-// teclado o al tocarlo (en pantallas táctiles no hay cursor). Se cierra al
-// tocar afuera o con Escape.
-export function Help({ children, label = 'Ayuda' }: { children: ReactNode; label?: string }) {
+// Un botón que abre un recuadro flotante debajo, alineado a la derecha.
+// Se abre al pasar el cursor (si `hover`), al llegar con el teclado o al
+// tocarlo (en pantallas táctiles no hay cursor), y se cierra al tocar
+// afuera o con Escape.
+export function Popover({
+  trigger,
+  label,
+  className = '',
+  hover = false,
+  children,
+}: {
+  trigger: ReactNode;
+  label: string;
+  className?: string;
+  hover?: boolean;
+  children: ReactNode;
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
 
@@ -21,13 +34,22 @@ export function Help({ children, label = 'Ayuda' }: { children: ReactNode; label
   }, [open]);
 
   return (
-    <span className={`help ${open ? 'open' : ''}`} ref={ref}>
+    <span className={`help ${hover ? 'hover' : ''} ${open ? 'open' : ''} ${className}`} ref={ref}>
       <button type="button" className="help-btn" aria-label={label} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-        ?
+        {trigger}
       </button>
-      <span className="help-pop" role="tooltip">
+      <span className="help-pop" role={hover ? 'tooltip' : 'dialog'}>
         {children}
       </span>
     </span>
+  );
+}
+
+// Botón «?» con una explicación que aparece al pasar el cursor.
+export function Help({ children, label = 'Ayuda' }: { children: ReactNode; label?: string }) {
+  return (
+    <Popover trigger="?" label={label} hover>
+      {children}
+    </Popover>
   );
 }

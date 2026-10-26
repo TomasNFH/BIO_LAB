@@ -231,7 +231,7 @@ input.text.short { flex: 0 0 90px; margin: 0 4px; }
 .help-pop p { margin: 0; }
 .help-pop p + p { margin-top: 8px; }
 @media (hover: hover) {
-  .help:hover .help-pop { display: block; }
+  .help.hover:hover .help-pop { display: block; }
 }
 .help:has(.help-btn:focus-visible) .help-pop, .help.open .help-pop { display: block; }
 
@@ -239,3 +239,72 @@ input.text.short { flex: 0 0 90px; margin: 0 4px; }
 .noise-head, .sub-head { display: flex; align-items: center; gap: 8px; }
 .noise-head .help, .sub-head .help { margin-left: auto; }
 .noise-head .help-btn, .sub-head .help-btn { width: 22px; height: 22px; font-size: 0.78rem; }
+
+/* Cadena interactiva (columna derecha): bloques que abren su panel debajo. */
+.chain-view .panel-head { margin-bottom: 8px; }
+.ch-cell { display: flex; align-items: stretch; border: 1px solid var(--border); border-radius: 8px; background: #22242b; min-width: 0; }
+.ch-cell.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.ch-cell.branch-b.selected { border-color: #6fa8ff; box-shadow: 0 0 0 1px #6fa8ff inset; }
+.ch-cell.off { border-style: dashed; background: transparent; }
+.ch-cell.off .ch-main { opacity: 0.5; }
+.ch-main {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 0;
+  padding: 4px 9px; background: transparent; border: 0; border-radius: 8px; text-align: left;
+}
+.ch-main:hover { background: rgba(255, 255, 255, 0.03); }
+.ch-label { font-weight: 600; font-size: 0.8rem; }
+.ch-detail { font-size: 0.72rem; color: var(--muted); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chain-power {
+  flex: none; width: 30px; padding: 0; display: flex; align-items: center; justify-content: center;
+  background: transparent; border: 0; border-left: 1px solid var(--border); border-radius: 0 8px 8px 0; color: var(--muted);
+}
+.chain-power:hover { background: rgba(255, 255, 255, 0.05); }
+.chain-power.is-on { color: var(--accent); }
+.branch-b .chain-power.is-on { color: #6fa8ff; }
+.ch-arrow { display: flex; justify-content: center; color: var(--muted); margin: 2px 0; }
+.ch-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; }
+.ch-branch {
+  text-align: center; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--muted); padding: 3px; border-radius: 6px;
+}
+.ch-branch.live.a { background: var(--accent); color: #102010; }
+.ch-branch.live.b { background: #6fa8ff; color: #0d1a2e; }
+.ch-actions { margin-top: 10px; display: flex; gap: 8px; align-items: center; }
+.ch-actions select { flex: 1; min-width: 0; }
+.ch-actions button { flex: none; padding: 5px 10px; font-size: 0.82rem; }
+.ch-presets { padding: 4px 10px; font-size: 0.8rem; }
+.ch-presets.on { background: #3a3e48; border-color: #4a4e5a; }
+
+/* Menú (por ejemplo «Capas» del monitor): mismo recuadro, botón con texto. */
+.menu .help-btn { width: auto; height: auto; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 500; color: var(--text); }
+.menu .help-pop { width: max-content; max-width: 80vw; }
+.menu .help-pop .check { display: flex; padding: 3px 0; font-size: 0.85rem; }
+
+/* Monitor compacto: métricas a la izquierda del trazo. */
+.monitor-body { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: stretch; }
+.metrics-v { border-collapse: collapse; font-size: 0.74rem; font-variant-numeric: tabular-nums; align-self: start; }
+.metrics-v th, .metrics-v td { padding: 2px 5px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.metrics-v thead th { font-weight: 600; text-align: right; color: var(--text); }
+.metrics-v tbody th { font-weight: 400; text-align: left; color: var(--muted); cursor: help; }
+.metrics-v td { text-align: right; }
+.metrics-v tr.shared td { text-align: center; color: var(--muted); }
+.monitor-panel .panel-head { gap: 8px; }
+.monitor-panel .panel-head select.compact { flex: none; padding: 4px 6px; font-size: 0.8rem; }
+.monitor-panel .panel-head .primary { min-width: 72px; padding: 5px 12px; }
+
+/* La columna de las vistas entra entera en la ventana. */
+@media (min-width: 1000px) {
+  .app { padding-top: 12px; }
+  .header { margin-bottom: 10px; }
+  .views-col > .panel { padding: 12px; margin-bottom: 10px; }
+  .views-col .panel-head { margin-bottom: 8px; }
+  .view-canvas.monitor { height: 270px; }
+  .view-canvas.spectrum, .view-canvas.stages { height: 225px; }
+  .views-col .view-options { margin-top: 6px; font-size: 0.78rem; gap: 6px 10px; }
+}
+
+/* En pantallas angostas: el trazo primero y las métricas debajo. */
+@media (max-width: 640px) {
+  .monitor-body { grid-template-columns: minmax(0, 1fr); }
+  .monitor-body .metrics-v { order: 2; width: 100%; }
+}

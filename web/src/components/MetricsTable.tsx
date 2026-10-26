@@ -4,115 +4,139 @@ import { BRANCHES, type Branch } from '../engine/chain';
 import { measure, type Metrics } from '../engine/metrics';
 import { dec } from './Knob';
 
-const fmtDb = (v: number) => (Number.isFinite(v) ? `${dec(v, 1)} dB` : '∞');
-const fmtMv = (v: number) => `${v > 0 ? '+' : ''}${dec(v, 3)} mV`;
+const signed = (v: number, digits: number) => `${v > 0 ? '+' : ''}${dec(v, digits)}`;
+const pct = (v: number) => (Number.isFinite(v) ? dec(v, 0) : '—');
 
-type Column = { head: string; title: string; cell: (m: Metrics) => string };
+// Una fila de la tabla: un valor por rama, o uno solo para las dos (lo
+// real, que no depende de la cadena).
+type Row = {
+  label: string;
+  title: string;
+  value?: (m: Metrics) => string;
+  shared?: (m: Metrics) => string;
+};
 
-const COMMON: Column[] = [
-  { head: 'Retardo', title: 'Cuánto llega tarde la salida respecto de la señal limpia', cell: (m) => `${dec(m.delay * 1000, 0)} ms` },
-  { head: 'SNR', title: 'Potencia de la señal sobre potencia de todo lo que la salida tiene de distinto, ya alineadas', cell: (m) => fmtDb(m.snr) },
-  { head: 'Error eficaz', title: 'Valor eficaz de salida − señal limpia', cell: (m) => `${dec(m.errorRms * 1000, 0)} µV` },
+const COMMON: Row[] = [
+  { label: 'Retardo (ms)', title: 'Cuánto llega tarde la salida respecto de la señal limpia', value: (m) => dec(m.delay * 1000, 0) },
+  {
+    label: 'SNR (dB)',
+    title: 'Potencia de la señal sobre potencia de todo lo que la salida tiene de distinto, ya alineadas',
+    value: (m) => (Number.isFinite(m.snr) ? dec(m.snr, 1) : '∞'),
+  },
+  { label: 'Error (µV)', title: 'Valor eficaz de salida − señal limpia', value: (m) => dec(m.errorRms * 1000, 0) },
 ];
 
-const ECG_COLUMNS: Column[] = [
-    {
-      head: 'Onda R',
-      title: 'Altura de la onda R medida, en % de la real',
-      cell: (m) => (m.kind === 'ecg' && Number.isFinite(m.rPercent) ? `${dec(m.rPercent, 0)} %` : '—'),
-    },
-    {
-      head: 'ST medido / real',
-      title: 'Desnivel del ST a 80 ms del R, respecto del segmento PR',
-      cell: (m) => (m.kind === 'ecg' && m.beats ? `${fmtMv(m.stMeasured)} / ${fmtMv(m.stTrue)}` : '—'),
-    },
-    {
-      head: 'QRS Se / VPP',
-      title: 'Detector de QRS en los últimos 20 s: % de latidos reales que encontró (sensibilidad) y % de sus detecciones que eran latidos (valor predictivo positivo)',
-      cell: (m) =>
-        m.kind === 'ecg' && m.qrs ? `${dec(m.qrs.sensitivity, 0)} % / ${Number.isFinite(m.qrs.ppv) ? dec(m.qrs.ppv, 0) : '—'} %` : '—',
-    },
-    {
-      head: 'FC medida / real',
-      title: 'Frecuencia cardíaca según las detecciones y la real, en los últimos 20 s',
-      cell: (m) =>
-        m.kind === 'ecg' && m.qrs && Number.isFinite(m.qrs.bpmMeasured) ? `${dec(m.qrs.bpmMeasured, 0)} / ${dec(m.qrs.bpmTrue, 0)} lpm` : '—',
-    },
+const ECG_ROWS: Row[] = [
+  { label: 'Onda R (%)', title: 'Altura de la onda R medida, en % de la real', value: (m) => (m.kind === 'ecg' ? pct(m.rPercent) : '—') },
+  {
+    label: 'ST (mV)',
+    title: 'Desnivel del ST a 80 ms del R, respecto del segmento PR',
+    value: (m) => (m.kind === 'ecg' && m.beats ? signed(m.stMeasured, 3) : '—'),
+  },
+  { label: 'ST real', title: 'El desnivel ST de la señal limpia', shared: (m) => (m.kind === 'ecg' && m.beats ? signed(m.stTrue, 3) : '—') },
+  {
+    label: 'QRS Se (%)',
+    title: 'Detector de QRS en los últimos 20 s: % de los latidos reales que encontró (sensibilidad)',
+    value: (m) => (m.kind === 'ecg' && m.qrs ? pct(m.qrs.sensitivity) : '—'),
+  },
+  {
+    label: 'QRS VPP (%)',
+    title: 'Detector de QRS: % de sus detecciones que eran latidos (valor predictivo positivo)',
+    value: (m) => (m.kind === 'ecg' && m.qrs ? pct(m.qrs.ppv) : '—'),
+  },
+  {
+    label: 'FC (lpm)',
+    title: 'Frecuencia cardíaca según las detecciones, en los últimos 20 s',
+    value: (m) => (m.kind === 'ecg' && m.qrs && Number.isFinite(m.qrs.bpmMeasured) ? dec(m.qrs.bpmMeasured, 0) : '—'),
+  },
+  {
+    label: 'FC real',
+    title: 'La frecuencia de los latidos reales en la misma ventana',
+    shared: (m) => (m.kind === 'ecg' && m.qrs && Number.isFinite(m.qrs.bpmTrue) ? dec(m.qrs.bpmTrue, 0) : '—'),
+  },
 ];
 
-// Un registro real se mide como un ECG (sin anotaciones, las columnas de
-// latidos quedan vacías).
-const BY_SOURCE: Record<SourceKind, Column[]> = {
-  ecg: ECG_COLUMNS,
-  rec: ECG_COLUMNS,
+const BY_SOURCE: Record<SourceKind, Row[]> = {
+  ecg: ECG_ROWS,
+  // Un registro real se mide como un ECG (sin anotaciones, las filas de
+  // latidos quedan vacías).
+  rec: ECG_ROWS,
   emg: [
     {
-      head: 'Amplitud eficaz',
+      label: 'Amplitud (%)',
       title: 'Valor eficaz de la salida, en % del real: cuánta fuerza parecería que hace el músculo',
-      cell: (m) => (m.kind === 'emg' && Number.isFinite(m.rmsPercent) ? `${dec(m.rmsPercent, 0)} %` : '—'),
+      value: (m) => (m.kind === 'emg' ? pct(m.rmsPercent) : '—'),
     },
     {
-      head: 'Frec. mediana medida / real',
+      label: 'Mediana (Hz)',
       title: 'Frecuencia que parte la potencia del espectro en dos mitades (baja con la fatiga, y también si se filtra o se muestrea mal)',
-      cell: (m) =>
-        m.kind === 'emg' && Number.isFinite(m.medianMeasured) ? `${dec(m.medianMeasured, 0)} / ${dec(m.medianTrue, 0)} Hz` : '—',
+      value: (m) => (m.kind === 'emg' && Number.isFinite(m.medianMeasured) ? dec(m.medianMeasured, 0) : '—'),
     },
     {
-      head: 'Envolvente',
+      label: 'Mediana real',
+      title: 'La frecuencia mediana de la señal limpia',
+      shared: (m) => (m.kind === 'emg' && Number.isFinite(m.medianTrue) ? dec(m.medianTrue, 0) : '—'),
+    },
+    {
+      label: 'Envolvente (%)',
       title: 'Correlación entre la envolvente medida y la real (valor eficaz en 100 ms): si se ve bien cuándo y cuánto se activa el músculo',
-      cell: (m) => (m.kind === 'emg' && Number.isFinite(m.envelopeCorr) ? `${dec(m.envelopeCorr, 0)} %` : '—'),
+      value: (m) => (m.kind === 'emg' ? pct(m.envelopeCorr) : '—'),
     },
   ],
   eog: [
     {
-      head: 'Error de mirada',
+      label: 'Mirada (°)',
       title: 'El error eficaz expresado en grados, con la sensibilidad del EOG',
-      cell: (m) => (m.kind === 'eog' ? `${dec(m.angleError, 1)}°` : '—'),
+      value: (m) => (m.kind === 'eog' ? dec(m.angleError, 1) : '—'),
     },
     {
-      head: 'Salto visible a 1 s',
+      label: 'Salto a 1 s (%)',
       title: 'Qué parte del cambio de mirada de cada sacada grande se sigue viendo 1 s después, durante la fijación',
-      cell: (m) => (m.kind === 'eog' && m.steps ? `${dec(m.stepRetained, 0)} %` : '—'),
+      value: (m) => (m.kind === 'eog' && m.steps ? pct(m.stepRetained) : '—'),
     },
   ],
 };
 
 // Qué tan fiel es cada rama, medido contra la señal limpia en los últimos
-// 8 s, después de alinear la salida en su retardo.
+// 8 s, después de alinear la salida en su retardo. Una fila por medida y
+// una columna por rama, para que entre al costado del monitor.
 export function MetricsTable({ engine, source }: { engine: BioEngine; source: SourceKind }) {
   const metrics = useMetrics(engine);
-  const columns = [...COMMON, ...BY_SOURCE[source]];
+  const rows = [...COMMON, ...BY_SOURCE[source]];
+  // Al cambiar de fuente, hasta la próxima medición queda la vieja.
+  const kind = source === 'rec' ? 'ecg' : source;
+  const m = (b: Branch) => (metrics[b]?.kind === kind ? metrics[b] : null);
+  const first = m('a') ?? m('b');
   return (
-    <div className="metrics">
-      <table>
-        <thead>
-          <tr>
-            <th>Rama</th>
-            {columns.map((c) => (
-              <th key={c.head} title={c.title}>
-                {c.head}
-              </th>
-            ))}
+    <table className="metrics-v" aria-label="Métricas de cada rama">
+      <thead>
+        <tr>
+          <th />
+          {BRANCHES.map((b) => (
+            <th key={b}>
+              <span className={`branch-dot ${b}`} /> {b.toUpperCase()}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r) => (
+          <tr key={r.label} className={r.shared ? 'shared' : ''}>
+            <th scope="row" title={r.title}>
+              {r.label}
+            </th>
+            {r.shared ? (
+              <td colSpan={2}>{first ? r.shared(first) : '—'}</td>
+            ) : (
+              BRANCHES.map((b) => {
+                const mb = m(b);
+                return <td key={b}>{mb && r.value ? r.value(mb) : '—'}</td>;
+              })
+            )}
           </tr>
-        </thead>
-        <tbody>
-          {BRANCHES.map((b) => {
-            // Al cambiar de fuente, hasta la próxima medición queda la vieja.
-            const m = metrics[b]?.kind === (source === 'rec' ? 'ecg' : source) ? metrics[b] : null;
-            return (
-              <tr key={b}>
-                <td>
-                  <span className={`branch-dot ${b}`} /> {b.toUpperCase()}
-                </td>
-                {columns.map((c) => (
-                  <td key={c.head}>{m ? c.cell(m) : '—'}</td>
-                ))}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+        ))}
+      </tbody>
+    </table>
   );
 }
 

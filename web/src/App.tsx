@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { BioEngine, type EngineState, type SourceKind } from './engine/BioEngine';
 import { BRANCHES, DEFAULT_BRANCHES, type Branch, type ChainSettings } from './engine/chain';
 import { DEFAULT_ECG, type EcgSettings } from './engine/ecg';
@@ -7,13 +7,12 @@ import { DEFAULT_EOG, type EogSettings } from './engine/eog';
 import { DEFAULT_NOISE, DEFAULT_NOISE_EMG, DEFAULT_NOISE_EOG, DEFAULT_NOISE_REC, noiseBand, type NoiseId, type NoiseSettings } from './engine/noise';
 import { AdcPanel } from './components/AdcPanel';
 import { AmpPanel } from './components/AmpPanel';
-import { BranchBar } from './components/BranchBar';
 import { DrlPanel } from './components/DrlPanel';
-import { ChainStrip } from './components/ChainStrip';
+import { ChainView, type Selection } from './components/ChainView';
 import { FilterPanel } from './components/FilterPanel';
 import { Logo } from './components/Logo';
 import { MetricsTable } from './components/MetricsTable';
-import { Help } from './components/Help';
+import { Help, Popover } from './components/Help';
 import { NoisePanel } from './components/NoisePanel';
 import { NotchPanel } from './components/NotchPanel';
 import { PresetPanel } from './components/PresetPanel';
@@ -83,6 +82,8 @@ export function App() {
   const [chains, setChains] = useState<Record<Branch, ChainSettings>>(DEFAULT_BRANCHES);
   // La rama que se edita en los paneles y se muestra en las vistas.
   const [branch, setBranch] = useState<Branch>('a');
+  // El bloque de la cadena cuyo panel está abierto (uno por vez).
+  const [selection, setSelection] = useState<Selection>('source');
   const [view, setView] = useState<ViewTab>('spectrum');
   const [stages, setStages] = useState<StagesOptions>(DEFAULT_STAGES);
   const [monitor, setMonitor] = useState<MonitorOptions>(DEFAULT_MONITOR);
@@ -108,7 +109,7 @@ export function App() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
-      const target = e.target as HTMLElement;
+      const target = e.target instanceof Element ? e.target : document.body;
       if (target.closest('input, select, textarea')) return;
       if (e.code === 'KeyB') {
         setBranch((b) => (b === 'a' ? 'b' : 'a'));
@@ -140,6 +141,25 @@ export function App() {
     setNoises(s.noises);
     setChains(s.chains);
   };
+  // Al abrir un bloque, si su panel quedó abajo de la ventana, se lleva a la
+  // vista (la columna de las vistas queda fija, así que no se pierde nada).
+  const panelRef = useRef<HTMLDivElement>(null);
+  const scrollPending = useRef(false);
+  const select = (sel: Selection) => {
+    setSelection(sel);
+    if (typeof sel === 'object') setBranch(sel.branch);
+    scrollPending.current = true;
+  };
+  useEffect(() => {
+    if (!scrollPending.current) return;
+    scrollPending.current = false;
+    const top = panelRef.current?.getBoundingClientRect().top;
+    if (top !== undefined && top > window.innerHeight - 160) window.scrollBy({ top: top - 90, behavior: 'smooth' });
+  }, [selection]);
+  useEffect(() => {
+    setSelection((sel) => (typeof sel === 'object' && sel.branch !== branch ? { ...sel, branch } : sel));
+  }, [branch]);
+  const block = typeof selection === 'object' ? selection.block : null;
   const editMonitor = (patch: Partial<MonitorOptions>) => setMonitor((s) => ({ ...s, ...patch }));
   const editSpectrum = (patch: Partial<SpectrumOptions>) => setSpectrum((s) => ({ ...s, ...patch }));
   const setChain = (b: Branch, s: ChainSettings) => setChains((c) => ({ ...c, [b]: s }));
@@ -156,11 +176,9 @@ export function App() {
         <span className="phase">Etapa 9: QRS, pierna derecha y EMG</span>
       </header>
 
-      <ChainStrip />
-
       <div className="layout">
         <div className="views-col">
-          <section className="panel">
+          <section className="panel monitor-panel">
             <div className="panel-head">
               <h2>Monitor</h2>
               <div className="seg branch-seg">
@@ -170,80 +188,81 @@ export function App() {
                   </button>
                 ))}
               </div>
+              <select
+                className="compact"
+                aria-label="Velocidad de barrido"
+                value={monitor.speed}
+                onChange={(e) => editMonitor({ speed: Number(e.target.value) })}
+              >
+                {SPEEDS.map((v) => (
+                  <option key={v} value={v}>
+                    {String(v).replace('.', ',')} mm/s
+                  </option>
+                ))}
+              </select>
+              <select
+                className="compact"
+                aria-label="Ganancia del monitor"
+                value={monitor.gain}
+                onChange={(e) => editMonitor({ gain: Number(e.target.value) })}
+              >
+                {GAINS.map((v) => (
+                  <option key={v} value={v}>
+                    {v} mm/mV
+                  </option>
+                ))}
+              </select>
+              <Popover trigger="Capas" label="Qué dibujar en el monitor" className="menu">
+                {(source === 'ecg' || source === 'rec') && (
+                  <label className="check">
+                    <input type="checkbox" checked={monitor.labels} onChange={(e) => editMonitor({ labels: e.target.checked })} />
+                    Marcar ondas
+                  </label>
+                )}
+                <Check
+                  checked={monitor.reference}
+                  onChange={(reference) => editMonitor({ reference })}
+                  swatch="ref"
+                  label="Referencia limpia"
+                />
+                <Check
+                  checked={monitor.other}
+                  onChange={(other) => editMonitor({ other })}
+                  swatch={branch === 'a' ? 'branch-b' : 'branch-a'}
+                  label={`Rama ${other}`}
+                />
+                {(source === 'ecg' || source === 'rec') && (
+                  <label className="check">
+                    <input
+                      type="checkbox"
+                      checked={monitor.detections}
+                      onChange={(e) => editMonitor({ detections: e.target.checked })}
+                    />
+                    Marcar QRS detectados
+                  </label>
+                )}
+                {source === 'emg' && (
+                  <Check
+                    checked={monitor.envelope}
+                    onChange={(envelope) => editMonitor({ envelope })}
+                    swatch="noise"
+                    label="Envolvente"
+                  />
+                )}
+                <label className="check">
+                  <input type="checkbox" checked={monitor.samples} onChange={(e) => editMonitor({ samples: e.target.checked })} />
+                  Marcar muestras del ADC
+                </label>
+              </Popover>
               <button className="primary" onClick={() => eng.toggle()}>
                 {state.playing ? 'Pausa' : 'Seguir'}
               </button>
               <Help label="Ayuda del monitor">{HELP.monitor}</Help>
             </div>
-            <MonitorView engine={eng} options={monitor} branch={branch} />
-            <div className="row view-options">
-              <span className="switch-label">Velocidad</span>
-              <Seg
-                values={SPEEDS}
-                value={monitor.speed}
-                label={(v) => `${String(v).replace('.', ',')} mm/s`}
-                onChange={(speed) => editMonitor({ speed })}
-              />
-              <span className="switch-label">Ganancia</span>
-              <Seg
-                values={GAINS}
-                value={monitor.gain}
-                label={(v) => `${v} mm/mV`}
-                onChange={(gain) => editMonitor({ gain })}
-              />
-              {(source === 'ecg' || source === 'rec') && (
-                <label className="check">
-                  <input
-                    type="checkbox"
-                    checked={monitor.labels}
-                    onChange={(e) => editMonitor({ labels: e.target.checked })}
-                  />
-                  Marcar ondas
-                </label>
-              )}
-              <Check
-                checked={monitor.reference}
-                onChange={(reference) => editMonitor({ reference })}
-                swatch="ref"
-                label="Referencia limpia"
-              />
-              <Check
-                checked={monitor.other}
-                onChange={(other) => editMonitor({ other })}
-                swatch={branch === 'a' ? 'branch-b' : 'branch-a'}
-                label={`Rama ${other}`}
-              />
-              {(source === 'ecg' || source === 'rec') && (
-                <label className="check">
-                  <input
-                    type="checkbox"
-                    checked={monitor.detections}
-                    onChange={(e) => editMonitor({ detections: e.target.checked })}
-                  />
-                  Marcar QRS detectados
-                </label>
-              )}
-              {source === 'emg' && (
-                <label className="check">
-                  <input
-                    type="checkbox"
-                    checked={monitor.envelope}
-                    onChange={(e) => editMonitor({ envelope: e.target.checked })}
-                  />
-                  <span className="swatch noise" />
-                  Envolvente
-                </label>
-              )}
-              <label className="check">
-                <input
-                  type="checkbox"
-                  checked={monitor.samples}
-                  onChange={(e) => editMonitor({ samples: e.target.checked })}
-                />
-                Marcar muestras del ADC
-              </label>
+            <div className="monitor-body">
+              <MetricsTable engine={eng} source={source} />
+              <MonitorView engine={eng} options={monitor} branch={branch} />
             </div>
-            <MetricsTable engine={eng} source={source} />
           </section>
 
           <section className="panel">
@@ -348,60 +367,85 @@ export function App() {
         </div>
 
         <div className="controls-col">
-          <PresetPanel engine={eng} current={current} onApply={applyLab} />
-
-          <SourcePanel
+          <ChainView
+            selection={selection}
+            onSelect={select}
+            branch={branch}
+            chains={chains}
+            onChain={setChain}
             source={source}
-            onSource={changeSource}
             ecg={ecg}
-            onEcg={setEcg}
             eog={eog}
-            onEog={setEog}
             emg={emg}
-            onEmg={setEmg}
             recording={recording}
-            recChannel={recChannel}
-            onRecording={(r) => {
-              setRecording(r);
-              setRecChannel(0);
-            }}
-            onRecChannel={setRecChannel}
+            noise={noise}
+            onNoise={setNoise}
           />
 
-          <NoisePanel
-            settings={noise}
-            defaults={{ ecg: DEFAULT_NOISE, eog: DEFAULT_NOISE_EOG, emg: DEFAULT_NOISE_EMG, rec: DEFAULT_NOISE_REC }[source]}
-            onChange={setNoise}
-            onFocusNoise={setFocusNoise}
-          />
+          <div ref={panelRef} className="ch-panel">
+            {selection === 'presets' && <PresetPanel engine={eng} current={current} onApply={applyLab} />}
 
-          <BranchBar branch={branch} onBranch={setBranch} chains={chains} onChange={setChain} />
+            {selection === 'source' && (
+              <SourcePanel
+                source={source}
+                onSource={changeSource}
+                ecg={ecg}
+                onEcg={setEcg}
+                eog={eog}
+                onEog={setEog}
+                emg={emg}
+                onEmg={setEmg}
+                recording={recording}
+                recChannel={recChannel}
+                onRecording={(r) => {
+                  setRecording(r);
+                  setRecChannel(0);
+                }}
+                onRecChannel={setRecChannel}
+              />
+            )}
 
-          <AmpPanel
-            engine={eng}
-            branch={branch}
-            settings={chain.amp}
-            onChange={(amp) => editChain({ amp })}
-            postGain={chain.post.gain}
-            onPostGain={(gain) => editChain({ post: { gain } })}
-          />
+            {selection === 'noise' && (
+              <NoisePanel
+                settings={noise}
+                defaults={{ ecg: DEFAULT_NOISE, eog: DEFAULT_NOISE_EOG, emg: DEFAULT_NOISE_EMG, rec: DEFAULT_NOISE_REC }[source]}
+                onChange={setNoise}
+                onFocusNoise={setFocusNoise}
+              />
+            )}
 
-          <DrlPanel
-            engine={eng}
-            branch={branch}
-            settings={chain.drl}
-            onChange={(drl) => editChain({ drl })}
-            cm0={noise.enabled && noise.mains.on ? noise.mains.common * (noise.mains.harmonics ? 1.5 : 1) : 0}
-            swing={chain.amp.supply - 1}
-          />
+            {block === 'amp' && (
+              <AmpPanel
+                engine={eng}
+                branch={branch}
+                settings={chain.amp}
+                onChange={(amp) => editChain({ amp })}
+                postGain={chain.post.gain}
+                onPostGain={(gain) => editChain({ post: { gain } })}
+              />
+            )}
 
-          <FilterPanel kind="hp" settings={chain.hp} onChange={(hp) => editChain({ hp })} />
+            {block === 'drl' && (
+              <DrlPanel
+                engine={eng}
+                branch={branch}
+                settings={chain.drl}
+                onChange={(drl) => editChain({ drl })}
+                cm0={noise.enabled && noise.mains.on ? noise.mains.common * (noise.mains.harmonics ? 1.5 : 1) : 0}
+                swing={chain.amp.supply - 1}
+              />
+            )}
 
-          <FilterPanel kind="lp" settings={chain.lp} onChange={(lp) => editChain({ lp })} />
+            {block === 'hp' && <FilterPanel kind="hp" settings={chain.hp} onChange={(hp) => editChain({ hp })} />}
 
-          <NotchPanel settings={chain.notch} onChange={(notch) => editChain({ notch })} />
+            {block === 'lp' && <FilterPanel kind="lp" settings={chain.lp} onChange={(lp) => editChain({ lp })} />}
 
-          <AdcPanel engine={eng} branch={branch} chain={chain} onChange={(adc) => editChain({ adc })} />
+            {block === 'notch' && <NotchPanel settings={chain.notch} onChange={(notch) => editChain({ notch })} />}
+
+            {block === 'adc' && (
+              <AdcPanel engine={eng} branch={branch} chain={chain} onChange={(adc) => editChain({ adc })} />
+            )}
+          </div>
         </div>
       </div>
     </div>
