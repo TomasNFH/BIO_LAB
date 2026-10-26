@@ -49,7 +49,7 @@ export function Knob({
   const angle = -SWEEP / 2 + frac * SWEEP;
 
   const onPointerDown = (e: React.PointerEvent) => {
-    (e.target as Element).setPointerCapture(e.pointerId);
+    e.currentTarget.setPointerCapture(e.pointerId);
     drag.current = { y: e.clientY, frac };
     onActive?.(true);
   };
