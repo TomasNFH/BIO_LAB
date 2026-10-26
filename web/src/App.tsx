@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { BioEngine, type EngineState, type SourceKind } from './engine/BioEngine';
-import { BRANCHES, DEFAULT_BRANCHES, type Branch, type ChainSettings } from './engine/chain';
-import { DEFAULT_ECG, type EcgSettings } from './engine/ecg';
-import { DEFAULT_EMG, type EmgSettings } from './engine/emg';
-import { DEFAULT_EOG, type EogSettings } from './engine/eog';
+import { BRANCHES, type Branch, type ChainSettings } from './engine/chain';
+import type { EcgSettings } from './engine/ecg';
+import type { EmgSettings } from './engine/emg';
+import type { EogSettings } from './engine/eog';
 import { DEFAULT_NOISE, DEFAULT_NOISE_EMG, DEFAULT_NOISE_EOG, DEFAULT_NOISE_REC, noiseBand, type NoiseId, type NoiseSettings } from './engine/noise';
 import { AdcPanel } from './components/AdcPanel';
 import { AmpPanel } from './components/AmpPanel';
@@ -18,10 +18,10 @@ import { NotchPanel } from './components/NotchPanel';
 import { DigitalLpPanel, ThresholdPanel } from './components/DigitalPanel';
 import { bandOf, withBand } from './components/bands';
 import { OutputDock, OutputPanel } from './components/OutputPanel';
-import { DEFAULT_OUTPUT, type OutputSettings } from './output';
+import type { OutputSettings } from './output';
 import { PresetPanel } from './components/PresetPanel';
 import { SourcePanel } from './components/SourcePanel';
-import type { LabSettings } from './lab';
+import { BUILTIN_PRESETS, type LabSettings } from './lab';
 import type { Recording } from './engine/recording';
 import { DEFAULT_MONITOR, MonitorView, type MonitorOptions } from './views/MonitorView';
 import { BodeView } from './views/BodeView';
@@ -33,6 +33,13 @@ import { DEFAULT_STAGES, StagesView, type StagesOptions } from './views/StagesVi
 // para que los re-renderizados (y los efectos dobles de StrictMode) no lo
 // reconstruyan.
 let engine: BioEngine | null = null;
+// El laboratorio arranca con el primer experimento (el autito con la mirada).
+const START: LabSettings = structuredClone(BUILTIN_PRESETS[0].settings);
+
+// El EOG es más chico que el ECG y no tiene ondas que marcar: ganancia y
+// marcas del monitor según la fuente.
+const monitorFor = (s: SourceKind, m: MonitorOptions): MonitorOptions => ({ ...m, gain: s === 'eog' ? 20 : 10, labels: s === 'ecg' || s === 'rec' });
+
 const getEngine = () => {
   if (!engine) {
     engine = new BioEngine();
@@ -66,32 +73,27 @@ const VIEW_TABS: { id: ViewTab; label: string }[] = [
 export function App() {
   const eng = getEngine();
   const [state, setState] = useState<EngineState>(eng.state);
-  const [source, setSource] = useState<SourceKind>('ecg');
-  const [ecg, setEcg] = useState<EcgSettings>(DEFAULT_ECG);
-  const [eog, setEog] = useState<EogSettings>(DEFAULT_EOG);
-  const [emg, setEmg] = useState<EmgSettings>(DEFAULT_EMG);
+  const [source, setSource] = useState<SourceKind>(START.source);
+  const [ecg, setEcg] = useState<EcgSettings>(START.ecg);
+  const [eog, setEog] = useState<EogSettings>(START.eog);
+  const [emg, setEmg] = useState<EmgSettings>(START.emg);
   // Registro real: vive sólo en esta página (no va en los ajustes guardados).
   const [recording, setRecording] = useState<Recording | null>(null);
   const [recChannel, setRecChannel] = useState(0);
   // Cada fuente tiene su propio juego de ruidos.
-  const [noises, setNoises] = useState<Record<SourceKind, NoiseSettings>>({
-    ecg: DEFAULT_NOISE,
-    eog: DEFAULT_NOISE_EOG,
-    emg: DEFAULT_NOISE_EMG,
-    rec: DEFAULT_NOISE_REC,
-  });
+  const [noises, setNoises] = useState<Record<SourceKind, NoiseSettings>>(START.noises);
   const noise = noises[source];
   const setNoise = (n: NoiseSettings) => setNoises((all) => ({ ...all, [source]: n }));
   const [focusNoise, setFocusNoise] = useState<NoiseId | null>(null);
-  const [chains, setChains] = useState<Record<Branch, ChainSettings>>(DEFAULT_BRANCHES);
-  const [output, setOutput] = useState<OutputSettings>(DEFAULT_OUTPUT);
+  const [chains, setChains] = useState<Record<Branch, ChainSettings>>(START.chains);
+  const [output, setOutput] = useState<OutputSettings>(START.output);
   // La rama que se edita en los paneles y se muestra en las vistas.
   const [branch, setBranch] = useState<Branch>('a');
   // El bloque de la cadena cuyo panel está abierto (uno por vez).
   const [selection, setSelection] = useState<Selection>('source');
   const [view, setView] = useState<ViewTab>('spectrum');
   const [stages, setStages] = useState<StagesOptions>(DEFAULT_STAGES);
-  const [monitor, setMonitor] = useState<MonitorOptions>(DEFAULT_MONITOR);
+  const [monitor, setMonitor] = useState<MonitorOptions>(() => monitorFor(START.source, DEFAULT_MONITOR));
   const [spectrum, setSpectrum] = useState<SpectrumOptions>(DEFAULT_SPECTRUM);
 
   useEffect(() => {
@@ -133,7 +135,7 @@ export function App() {
   const changeSource = (s: SourceKind) => {
     setSource(s);
     if (s !== 'ecg' && s !== 'rec') setView((v) => (v === 'qrs' ? 'spectrum' : v));
-    setMonitor((m) => ({ ...m, gain: s === 'eog' ? 20 : 10, labels: s === 'ecg' || s === 'rec' }));
+    setMonitor((m) => monitorFor(s, m));
   };
 
   // El ajuste completo, para guardarlo, y cómo cargar uno.
