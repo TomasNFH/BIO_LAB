@@ -68,28 +68,30 @@ export function useCanvasLoop(draw: DrawFn, animate = true) {
   return canvasRef;
 }
 
+// Papel de ECG: fondo crema (lo pone el CSS), cuadrícula terracota y trazos
+// oscuros. Mantener al día con los tokens de styles.css.
 export const COLORS = {
-  gridMinor: 'rgba(255, 110, 110, 0.07)',
-  gridMajor: 'rgba(255, 110, 110, 0.2)',
-  label: '#8a8d97',
-  grid: 'rgba(255, 255, 255, 0.07)',
-  gridStrong: 'rgba(255, 255, 255, 0.18)',
-  trace: '#5be37a', // verde de monitor
-  traceHead: '#c8ffd4',
-  reference: 'rgba(200, 202, 210, 0.55)',
-  warning: '#f0a848',
-  danger: '#f26b5b',
-  noise: '#f0a848',
-  highlight: 'rgba(240, 168, 72, 0.12)',
-  before: '#e6c75a', // antes de los filtros
-  hp: '#e6c75a',
-  lp: '#c792ea',
-  notch: '#ff79c6',
-  aboveNyquist: 'rgba(255, 255, 255, 0.04)',
-  envelope: 'rgba(240, 168, 72, 0.9)',
-  branchB: '#6fa8ff',
-  measured: '#f2f2f2',
+  gridMinor: 'rgba(224, 90, 71, 0.10)',
+  gridMajor: 'rgba(224, 90, 71, 0.28)',
+  label: '#6E5D55',
+  grid: 'rgba(61, 43, 38, 0.08)',
+  gridStrong: 'rgba(61, 43, 38, 0.22)',
+  trace: '#23777D', // turquesa oscuro
+  traceHead: '#2C1E1A',
+  reference: 'rgba(61, 43, 38, 0.4)',
+  warning: '#C98A2E',
+  danger: '#A8261B',
+  noise: '#C98A2E',
+  highlight: 'rgba(201, 138, 46, 0.14)',
+  before: '#B08A1E', // antes de los filtros
+  hp: '#B08A1E',
+  lp: '#7A4E6E',
+  notch: '#C2557A',
+  aboveNyquist: 'rgba(61, 43, 38, 0.05)',
+  envelope: 'rgba(201, 138, 46, 0.9)',
+  branchB: '#B8432F', // terracota oscuro
+  measured: '#2C1E1A',
 };
 
-// Color de cada rama: A verde, B azul.
+// Color de cada rama: A turquesa, B terracota.
 export const BRANCH_COLORS = { a: COLORS.trace, b: COLORS.branchB } as const;
