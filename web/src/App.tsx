@@ -180,87 +180,90 @@ export function App() {
       <div className="layout">
         <div className="views-col">
           <section className="panel monitor-panel">
-            <div className="panel-head">
-              <h2>Monitor</h2>
-              <div className="seg branch-seg">
-                {BRANCHES.map((b) => (
-                  <button key={b} className={`${b} ${branch === b ? 'on' : ''}`} onClick={() => setBranch(b)}>
-                    {b.toUpperCase()}
-                  </button>
-                ))}
-              </div>
-              <select
-                className="compact"
-                aria-label="Velocidad de barrido"
-                value={monitor.speed}
-                onChange={(e) => editMonitor({ speed: Number(e.target.value) })}
-              >
-                {SPEEDS.map((v) => (
-                  <option key={v} value={v}>
-                    {String(v).replace('.', ',')} mm/s
-                  </option>
-                ))}
-              </select>
-              <select
-                className="compact"
-                aria-label="Ganancia del monitor"
-                value={monitor.gain}
-                onChange={(e) => editMonitor({ gain: Number(e.target.value) })}
-              >
-                {GAINS.map((v) => (
-                  <option key={v} value={v}>
-                    {v} mm/mV
-                  </option>
-                ))}
-              </select>
-              <Popover trigger="Capas" label="Qué dibujar en el monitor" className="menu">
-                {(source === 'ecg' || source === 'rec') && (
-                  <label className="check">
-                    <input type="checkbox" checked={monitor.labels} onChange={(e) => editMonitor({ labels: e.target.checked })} />
-                    Marcar ondas
-                  </label>
-                )}
-                <Check
-                  checked={monitor.reference}
-                  onChange={(reference) => editMonitor({ reference })}
-                  swatch="ref"
-                  label="Referencia limpia"
-                />
-                <Check
-                  checked={monitor.other}
-                  onChange={(other) => editMonitor({ other })}
-                  swatch={branch === 'a' ? 'branch-b' : 'branch-a'}
-                  label={`Rama ${other}`}
-                />
-                {(source === 'ecg' || source === 'rec') && (
-                  <label className="check">
-                    <input
-                      type="checkbox"
-                      checked={monitor.detections}
-                      onChange={(e) => editMonitor({ detections: e.target.checked })}
-                    />
-                    Marcar QRS detectados
-                  </label>
-                )}
-                {source === 'emg' && (
-                  <Check
-                    checked={monitor.envelope}
-                    onChange={(envelope) => editMonitor({ envelope })}
-                    swatch="noise"
-                    label="Envolvente"
-                  />
-                )}
-                <label className="check">
-                  <input type="checkbox" checked={monitor.samples} onChange={(e) => editMonitor({ samples: e.target.checked })} />
-                  Marcar muestras del ADC
-                </label>
-              </Popover>
-              <button className="primary" onClick={() => eng.toggle()}>
-                {state.playing ? 'Pausa' : 'Seguir'}
-              </button>
-              <Help label="Ayuda del monitor">{HELP.monitor}</Help>
-            </div>
+            {/* Título sobre las métricas; ajustes y botones centrados sobre el trazo. */}
             <div className="monitor-body">
+              <div className="monitor-title">
+                <h2>Monitor</h2>
+                <Help label="Ayuda del monitor">{HELP.monitor}</Help>
+              </div>
+              <div className="monitor-controls">
+                <select
+                  className="compact"
+                  aria-label="Velocidad de barrido"
+                  value={monitor.speed}
+                  onChange={(e) => editMonitor({ speed: Number(e.target.value) })}
+                >
+                  {SPEEDS.map((v) => (
+                    <option key={v} value={v}>
+                      {String(v).replace('.', ',')} mm/s
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="compact"
+                  aria-label="Ganancia del monitor"
+                  value={monitor.gain}
+                  onChange={(e) => editMonitor({ gain: Number(e.target.value) })}
+                >
+                  {GAINS.map((v) => (
+                    <option key={v} value={v}>
+                      {v} mm/mV
+                    </option>
+                  ))}
+                </select>
+                <Popover trigger="Capas" label="Qué dibujar en el monitor" className="menu">
+                  {(source === 'ecg' || source === 'rec') && (
+                    <label className="check">
+                      <input type="checkbox" checked={monitor.labels} onChange={(e) => editMonitor({ labels: e.target.checked })} />
+                      Marcar ondas
+                    </label>
+                  )}
+                  <Check
+                    checked={monitor.reference}
+                    onChange={(reference) => editMonitor({ reference })}
+                    swatch="ref"
+                    label="Referencia limpia"
+                  />
+                  <Check
+                    checked={monitor.other}
+                    onChange={(other) => editMonitor({ other })}
+                    swatch={branch === 'a' ? 'branch-b' : 'branch-a'}
+                    label={`Rama ${other}`}
+                  />
+                  {(source === 'ecg' || source === 'rec') && (
+                    <label className="check">
+                      <input
+                        type="checkbox"
+                        checked={monitor.detections}
+                        onChange={(e) => editMonitor({ detections: e.target.checked })}
+                      />
+                      Marcar QRS detectados
+                    </label>
+                  )}
+                  {source === 'emg' && (
+                    <Check
+                      checked={monitor.envelope}
+                      onChange={(envelope) => editMonitor({ envelope })}
+                      swatch="noise"
+                      label="Envolvente"
+                    />
+                  )}
+                  <label className="check">
+                    <input type="checkbox" checked={monitor.samples} onChange={(e) => editMonitor({ samples: e.target.checked })} />
+                    Marcar muestras del ADC
+                  </label>
+                </Popover>
+                <button className="primary" onClick={() => eng.toggle()}>
+                  {state.playing ? 'Pausa' : 'Seguir'}
+                </button>
+                <div className="seg branch-seg">
+                  {BRANCHES.map((b) => (
+                    <button key={b} className={`${b} ${branch === b ? 'on' : ''}`} onClick={() => setBranch(b)}>
+                      {b.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <MetricsTable engine={eng} source={source} />
               <MonitorView engine={eng} options={monitor} branch={branch} />
             </div>

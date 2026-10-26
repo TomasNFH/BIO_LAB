@@ -345,6 +345,8 @@ input.text.short { flex: 0 0 90px; margin: 0 4px; }
 .chain-power.is-on { color: var(--accent); }
 .branch-b .chain-power.is-on { color: var(--branch-b); }
 .ch-arrow { display: flex; justify-content: center; color: var(--muted); margin: 2px 0; }
+/* Entrada: fuente y ruido encerrados juntos, porque las ramas reciben su suma. */
+.ch-input { border: 1.5px dashed var(--muted); border-radius: 12px; padding: 7px; }
 .ch-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; }
 .ch-branch {
   text-align: center; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
@@ -361,21 +363,34 @@ input.text.short { flex: 0 0 90px; margin: 0 4px; }
 .ch-presets.on { background: var(--espresso); border-color: var(--espresso); color: var(--cream-light); }
 
 /* Menú (por ejemplo «Capas» del monitor): mismo recuadro, botón con texto. */
-.menu .help-btn { width: auto; height: auto; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 500; color: var(--text); border-color: var(--border-strong); }
+/* El botón del menú va como «Pausa», pero en crema claro. Abierto, queda
+   apretado (sin sombra). */
+.menu .help-btn {
+  width: auto; height: auto; padding: 5px 12px; border-radius: 6px; font-size: inherit; font-weight: 600; line-height: normal;
+  color: var(--text); background: var(--cream-light); border: 1px solid var(--espresso);
+  box-shadow: var(--shadow-hard-sm); transition: transform 0.05s, box-shadow 0.05s, background 0.1s;
+}
+.menu .help-btn:hover:not(:disabled) { color: var(--text); background: var(--panel-sunk); border-color: var(--espresso); }
+.help.menu.open .help-btn, .menu .help-btn:active { color: var(--text); background: var(--panel-sunk); transform: translate(2px, 2px); box-shadow: none; }
 .menu .help-pop { width: max-content; max-width: 80vw; }
 .menu .help-pop .check { display: flex; padding: 3px 0; font-size: 0.85rem; }
 
 /* Monitor compacto: métricas a la izquierda del trazo. */
 .monitor-body { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: stretch; }
+.monitor-title { display: flex; align-items: center; gap: 8px; }
+.monitor-title h2 { margin: 0; }
+/* El «?» está a la izquierda: su recuadro se abre hacia la derecha. */
+.monitor-title .help-pop { left: 0; right: auto; }
+.monitor-controls { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; }
 .metrics-v { border-collapse: collapse; font-size: 0.74rem; font-variant-numeric: tabular-nums; align-self: start; }
 .metrics-v th, .metrics-v td { padding: 2px 5px; border-bottom: 1px solid var(--border); white-space: nowrap; }
 .metrics-v thead th { font-weight: 600; text-align: right; color: var(--text); }
 .metrics-v tbody th { font-weight: 400; text-align: left; color: var(--muted); cursor: help; }
 .metrics-v td { text-align: right; }
 .metrics-v tr.shared td { text-align: center; color: var(--muted); }
-.monitor-panel .panel-head { gap: 8px; }
-.monitor-panel .panel-head select.compact { flex: none; padding: 4px 6px; font-size: 0.8rem; }
-.monitor-panel .panel-head .primary { min-width: 72px; padding: 5px 12px; }
+.monitor-controls select.compact { flex: none; padding: 4px 6px; font-size: 0.8rem; }
+/* «Capas» y «Pausa» del mismo tamaño. */
+.monitor-controls .primary, .monitor-controls .menu .help-btn { min-width: 76px; padding: 5px 10px; font-size: 0.92rem; }
 
 /* La columna de las vistas entra entera en la ventana. */
 @media (min-width: 1000px) {

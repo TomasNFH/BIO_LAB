@@ -167,16 +167,18 @@ export function ChainView(props: Props) {
         </Help>
       </div>
 
-      <div className="ch-grid">
-        <Cell label="Fuente" detail={sourceDetail} on selected={selection === 'source'} onOpen={() => onSelect('source')} />
-        <Cell
-          label="+ Ruido"
-        detail={noise.enabled ? `${activeNoises} de ${NOISE_IDS.length} fuentes` : 'apagado'}
-          on={noise.enabled}
-          selected={selection === 'noise'}
-          onOpen={() => onSelect('noise')}
-          power={<Power on={noise.enabled} label={noise.enabled ? 'Apagar el ruido' : 'Prender el ruido'} onClick={() => onNoise({ ...noise, enabled: !noise.enabled })} />}
-        />
+      {/* La entrada de las dos ramas es la suma de la fuente y el ruido. */}
+      <div className="ch-input" role="group" aria-label="Entrada: fuente más ruido">        <div className="ch-grid">
+          <Cell label="Fuente" detail={sourceDetail} on selected={selection === 'source'} onOpen={() => onSelect('source')} />
+          <Cell
+            label="+ Ruido"
+            detail={noise.enabled ? `${activeNoises} de ${NOISE_IDS.length} fuentes` : 'apagado'}
+            on={noise.enabled}
+            selected={selection === 'noise'}
+            onOpen={() => onSelect('noise')}
+            power={<Power on={noise.enabled} label={noise.enabled ? 'Apagar el ruido' : 'Prender el ruido'} onClick={() => onNoise({ ...noise, enabled: !noise.enabled })} />}
+          />
+        </div>
       </div>
       <Arrow />
 
