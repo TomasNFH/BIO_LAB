@@ -16,6 +16,7 @@ import { Help, Popover } from './components/Help';
 import { NoisePanel } from './components/NoisePanel';
 import { NotchPanel } from './components/NotchPanel';
 import { DigitalLpPanel, ThresholdPanel } from './components/DigitalPanel';
+import { Eyes } from './components/Eyes';
 import { bandOf, withBand } from './components/bands';
 import { OutputDock, OutputPanel } from './components/OutputPanel';
 import type { OutputSettings } from './output';
@@ -183,6 +184,7 @@ export function App() {
         <h1 className="wordmark" aria-label="Bio Lab">
           <span aria-hidden="true">bi<span className="dot-o">o</span> lab</span>
         </h1>
+        {source === 'eog' && eog.mode === 'interactive' && <Eyes engine={eng} amplitude={eog.amplitude} />}
       </header>
 
       <div className="layout">

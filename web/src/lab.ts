@@ -50,9 +50,10 @@ function merge<T>(base: T, value: unknown): T {
   return out as T;
 }
 
-// Los ajustes guardados antes de la etapa digital y la salida no las traen:
-// `merge` las completa con las de por defecto. El modo del umbral y el
-// dispositivo, además, tienen que ser de los conocidos.
+// Los ajustes guardados antes de la etapa digital, la salida o el EOG
+// interactivo no los traen: `merge` los completa con los de por defecto. El
+// modo del umbral, el dispositivo y el modo del EOG, además, tienen que ser
+// de los conocidos.
 export function normalize(raw: unknown): LabSettings {
   const s = merge(DEFAULT_LAB, raw);
   for (const b of BRANCHES) {
@@ -60,6 +61,7 @@ export function normalize(raw: unknown): LabSettings {
     if (thr.mode !== 'one' && thr.mode !== 'two') thr.mode = DEFAULT_DIGITAL.thr.mode;
   }
   if (!DEVICES.some((d) => d.id === s.output.device)) s.output.device = DEFAULT_OUTPUT.device;
+  if (s.eog.mode !== 'interactive' && s.eog.mode !== 'generator') s.eog.mode = DEFAULT_EOG.mode;
   return s;
 }
 
@@ -101,7 +103,7 @@ export const EMG_LP = { ...DEFAULT_LP, r: 10e3, c: 35e-9, order: 2 as const }; /
 export const BUILTIN_PRESETS: Preset[] = [
   {
     name: 'Autito con la mirada (EOG)',
-    description: 'El EOG pasa por un pasa bajos digital de 5 Hz y dos umbrales (unos ±10°): mirar a la derecha lleva el autito hacia adelante y a la izquierda hacia atrás. A con la banda del EOG (sin pasa altos): el autito sigue a la mirada. B con el pasa altos del ECG (0,48 Hz): cada mirada se desvanece en un segundo y el autito se frena aunque el ojo siga mirando al costado. Mirar la Salida y el escalón arriba del monitor.',
+    description: 'EOG interactivo: los ojitos del encabezado siguen al mouse y el EOG sale de hacia dónde miran. Pasa por un pasa bajos digital de 5 Hz y dos umbrales (unos ±10°): mirar a la derecha lleva el autito hacia adelante y a la izquierda hacia atrás. A con la banda del EOG (sin pasa altos): el autito sigue a la mirada. B con el pasa altos del ECG (0,48 Hz): cada mirada se desvanece en un segundo y el autito se frena aunque el ojo siga mirando al costado. Mirar la Salida y el escalón arriba del monitor.',
     settings: lab({
       source: 'eog',
       output: 'car',
@@ -303,9 +305,10 @@ export const BUILTIN_PRESETS: Preset[] = [
   },
   {
     name: 'EOG: filtros de ECG contra filtros de EOG',
-    description: 'A con la banda de monitoreo del ECG: cada fijación se desvanece hacia cero. B con la banda del EOG (sin pasa altos, 30 Hz): la mirada se mantiene. Mirar el monitor y la columna «Salto visible a 1 s».',
+    description: 'Con el generador de EOG (mirada libre). A con la banda de monitoreo del ECG: cada fijación se desvanece hacia cero. B con la banda del EOG (sin pasa altos, 30 Hz): la mirada se mantiene. Mirar el monitor y la columna «Salto visible a 1 s».',
     settings: lab({
       source: 'eog',
+      eog: { mode: 'generator' },
       b: (c) => {
         c.hp = { ...DEFAULT_HP, on: false };
         c.lp = { ...DEFAULT_LP, order: 2, c: 530e-9 };

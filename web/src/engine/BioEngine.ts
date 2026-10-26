@@ -181,6 +181,11 @@ export class BioEngine {
     this.eog.set(settings);
   }
 
+  // EOG interactivo: hacia dónde mira el ojo, en grados.
+  setGaze(deg: number) {
+    this.eog.setTarget(deg);
+  }
+
   setEmg(settings: EmgSettings) {
     this.emg.set(settings);
   }

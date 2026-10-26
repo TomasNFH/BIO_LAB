@@ -172,7 +172,7 @@ export function ChainView(props: Props) {
     source === 'ecg'
       ? `ECG · ${RHYTHMS[ecg.rhythm]}${ecg.rhythm === 'vt' ? '' : ` · ${ecg.bpm} lpm`}`
       : source === 'eog'
-        ? `EOG · ${PATTERNS[eog.pattern]}`
+        ? `EOG · ${eog.mode === 'interactive' ? 'Interactivo' : PATTERNS[eog.pattern]}`
         : source === 'emg'
           ? `EMG · ${EMG_PATTERNS[emg.pattern]}`
           : `Registro · ${recording ? recording.name : 'sin cargar'}`;

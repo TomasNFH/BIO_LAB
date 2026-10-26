@@ -103,19 +103,40 @@ export function SourcePanel({ source, onSource, ecg, onEcg, eog, onEog, emg, onE
       ) : source === 'eog' ? (
         <>
           <div className="switch-rows">
-            <span className="switch-label">Movimiento de los ojos</span>
+            <span className="switch-label">Quién mueve los ojos</span>
             <div className="seg">
-              {(Object.keys(PATTERNS) as EogPattern[]).map((p) => (
-                <button key={p} className={eog.pattern === p ? 'on' : ''} onClick={() => editEog({ pattern: p })}>
-                  {PATTERNS[p]}
-                </button>
-              ))}
+              <button className={eog.mode === 'interactive' ? 'on' : ''} onClick={() => editEog({ mode: 'interactive' })}>
+                Interactivo (con el mouse)
+              </button>
+              <button className={eog.mode === 'generator' ? 'on' : ''} onClick={() => editEog({ mode: 'generator' })}>
+                Generador
+              </button>
             </div>
+            {eog.mode === 'generator' && (
+              <>
+                <span className="switch-label">Movimiento de los ojos</span>
+                <div className="seg">
+                  {(Object.keys(PATTERNS) as EogPattern[]).map((p) => (
+                    <button key={p} className={eog.pattern === p ? 'on' : ''} onClick={() => editEog({ pattern: p })}>
+                      {PATTERNS[p]}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
+          {eog.mode === 'interactive' && (
+            <p className="muted small top">
+              Mové el mouse a la izquierda y a la derecha: los ojitos del encabezado lo siguen, y el
+              EOG sale de hacia dónde miran. El ojo no se desliza: alcanza al mouse con sacadas.
+            </p>
+          )}
           <div className="knobs">
             <Knob label="Sensibilidad" value={eog.sensitivity} min={5} max={30} step={1} defaultValue={DEFAULT_EOG.sensitivity} format={(v) => `${v} µV/°`} onChange={(sensitivity) => editEog({ sensitivity })} />
             <Knob label="Ángulo máx." value={eog.amplitude} min={5} max={40} step={1} defaultValue={DEFAULT_EOG.amplitude} format={(v) => `±${v}°`} onChange={(amplitude) => editEog({ amplitude })} />
-            <Knob label="Fijación" value={eog.fixation} min={0.3} max={4} step={0.1} defaultValue={DEFAULT_EOG.fixation} format={(v) => `${dec(v, 1)} s`} onChange={(fixation) => editEog({ fixation })} />
+            {eog.mode === 'generator' && (
+              <Knob label="Fijación" value={eog.fixation} min={0.3} max={4} step={0.1} defaultValue={DEFAULT_EOG.fixation} format={(v) => `${dec(v, 1)} s`} onChange={(fixation) => editEog({ fixation })} />
+            )}
             <Knob label="Parpadeos" value={eog.blinks} min={0} max={30} step={1} defaultValue={DEFAULT_EOG.blinks} format={(v) => `${v}/min`} onChange={(blinks) => editEog({ blinks })} />
           </div>
         </>

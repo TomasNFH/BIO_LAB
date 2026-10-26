@@ -14,10 +14,18 @@ import { makeRandom } from './random';
 // - Fijaciones: la mirada quieta entre sacadas.
 // - Seguimiento suave: la mirada sigue un objeto que se mueve despacio.
 // - Parpadeos: el párpado barre la córnea y deja un pulso breve.
+//
+// Dos modos: el generador produce esos movimientos solo, con el patrón
+// elegido; en el interactivo la mirada va hacia donde está el mouse. El ojo
+// no lo sigue de forma continua: lo alcanza con sacadas (como cuando se
+// sigue algo que se mueve rápido), y entre una y otra queda fijo al menos
+// 150 ms.
 
 export type EogPattern = 'saccades' | 'reading' | 'pursuit';
+export type EogMode = 'interactive' | 'generator';
 
 export type EogSettings = {
+  mode: EogMode;
   pattern: EogPattern;
   sensitivity: number; // µV por grado
   amplitude: number; // ángulo máximo a cada lado, grados
@@ -26,6 +34,7 @@ export type EogSettings = {
 };
 
 export const DEFAULT_EOG: EogSettings = {
+  mode: 'interactive',
   pattern: 'saccades',
   sensitivity: 16,
   amplitude: 20,
@@ -45,6 +54,10 @@ const BLINK_AMP = 0.08; // mV
 const BLINK_SIGMA = 0.06; // s
 const PURSUIT_HZ = 0.2;
 const KEEP = 32; // s de historia que se guardan (para las métricas)
+// Modo interactivo: diferencia mínima con el objetivo para hacer una sacada,
+// y fijación mínima entre sacadas.
+const TARGET_MIN = 1; // grados
+const TARGET_FIXATION = 0.15; // s
 
 // Perfil de una sacada: arranca y frena suave (velocidad en campana).
 const profile = (u: number) => 0.5 - 0.5 * Math.cos(Math.PI * u);
@@ -62,6 +75,7 @@ export class EogSource {
   private lastAngle = 0; // último ángulo calculado
   private resync = false; // cambió el patrón: seguir desde donde está el ojo
   private pursuitPhase = 0;
+  private target = 0; // modo interactivo: hacia dónde se mira, grados
 
   constructor(settings: EogSettings = DEFAULT_EOG) {
     this.settings = { ...settings };
@@ -69,12 +83,42 @@ export class EogSource {
   }
 
   set(settings: EogSettings) {
-    if (settings.pattern !== this.settings.pattern) this.resync = true;
+    if (settings.pattern !== this.settings.pattern || settings.mode !== this.settings.mode) this.resync = true;
     this.settings = { ...settings };
   }
 
   get sensitivity() {
     return this.settings.sensitivity;
+  }
+
+  get interactive() {
+    return this.settings.mode === 'interactive';
+  }
+
+  // Modo interactivo: hacia dónde mirar, en grados (se limita al ángulo
+  // máximo).
+  setTarget(deg: number) {
+    const a = this.settings.amplitude;
+    this.target = Math.max(-a, Math.min(a, deg));
+  }
+
+  get targetAngle() {
+    return this.target;
+  }
+
+  // Último ángulo calculado (sin avanzar nada), para dibujar el ojo.
+  get angle() {
+    return this.lastAngle;
+  }
+
+  // ¿Hay un parpadeo cerca del instante t?
+  blinkingAt(t: number) {
+    for (let i = this.blinkTimes.length - 1; i >= 0; i--) {
+      const d = t - this.blinkTimes[i];
+      if (d > 2 * BLINK_SIGMA) break;
+      if (d > -2 * BLINK_SIGMA) return true;
+    }
+    return false;
   }
 
   // Ángulo de la mirada en grados en el instante t (t debe avanzar).
@@ -86,7 +130,7 @@ export class EogSource {
   }
 
   private computeAngle(t: number) {
-    if (this.settings.pattern === 'pursuit') {
+    if (!this.interactive && this.settings.pattern === 'pursuit') {
       return this.settings.amplitude * Math.sin(2 * Math.PI * PURSUIT_HZ * t + this.pursuitPhase);
     }
     for (let i = this.saccades.length - 1; i >= 0; i--) {
@@ -104,7 +148,7 @@ export class EogSource {
     this.resync = false;
     const a = this.settings.amplitude;
     const from = Math.max(-a, Math.min(a, this.lastAngle));
-    if (this.settings.pattern === 'pursuit') {
+    if (!this.interactive && this.settings.pattern === 'pursuit') {
       this.pursuitPhase = Math.asin(from / a) - 2 * Math.PI * PURSUIT_HZ * t;
       return;
     }
@@ -147,6 +191,19 @@ export class EogSource {
       if (s.blinks > 0) this.blinkTimes.push(this.nextBlink);
       const mean = s.blinks > 0 ? 60 / s.blinks : 5;
       this.nextBlink += Math.max(0.5, mean * (0.4 + 1.2 * r.next()));
+    }
+    if (this.interactive) {
+      // Una sacada hacia el objetivo cuando quedó lejos y ya pasó la
+      // fijación mínima desde la anterior.
+      if (this.nextSaccade <= t && Math.abs(this.target - this.position) >= TARGET_MIN) {
+        const from = this.position;
+        const to = this.target;
+        const dur = saccadeDuration(to - from);
+        this.saccades.push({ t0: t, dur, from, to });
+        this.position = to;
+        this.nextSaccade = t + dur + TARGET_FIXATION;
+      }
+      return;
     }
     if (s.pattern === 'pursuit') {
       // En seguimiento no hay sacadas; se sigue avanzando el reloj.

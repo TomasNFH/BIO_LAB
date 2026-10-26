@@ -62,7 +62,16 @@
 body { margin: 0; border-top: 6px solid var(--terra); } /* franja del marco retro */
 
 .app { max-width: 760px; margin: 0 auto; padding: 24px 16px 64px; }
-.header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+.header { position: relative; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+/* Ojitos del EOG interactivo: centrados en el encabezado (a la derecha en
+   pantallas angostas, para no pisar el título). Parpadean con la señal. */
+.eyes { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); line-height: 0; }
+.eyes svg { display: block; }
+.eyes .eye { transform-box: fill-box; transform-origin: center; transition: transform 0.06s; }
+.eyes.blink .eye { transform: scaleY(0.12); }
+@media (max-width: 560px) {
+  .eyes { left: auto; right: 0; transform: translateY(-50%); }
+}
 .header .logo { color: var(--espresso); flex: none; }
 .header .logo .logo-beat { stroke: var(--terra); }
 .header-btn { margin-left: auto; }
