@@ -177,8 +177,9 @@ export function measure(engine: BioEngine, branch: Branch): Metrics | null {
     return max;
   };
 
-  // Latidos enteros dentro de la ventana (con margen para el PR y el ST).
-  const beats = engine.ecg.beatsBetween(start / fs - PR[0], last / fs - ST_AT - 0.01);
+  // Latidos normales enteros dentro de la ventana (con margen para el PR y
+  // el ST); los ventriculares no tienen PR ni ST comparables.
+  const beats = engine.ecg.normalBetween(start / fs - PR[0], last / fs - ST_AT - 0.01);
   let rOut = 0;
   let rClean = 0;
   let stOut = 0;
@@ -210,7 +211,8 @@ function scoreQrs(engine: BioEngine, branch: Branch): QrsScore | null {
   // juzga; se deja un segundo más para que se asienten los umbrales.
   const start = Math.max(engine.oldest / fs, engine.qrs[branch].readyFrom / fs + 1, end - QRS_WINDOW);
   if (end - start < 4) return null;
-  const truth = engine.ecg.beatsBetween(start, end);
+  // Los latidos con QRS: una P bloqueada no es un latido que detectar.
+  const truth = engine.ecg.qrsBetween(start, end);
   const found = engine.qrs[branch]
     .detectionsBetween(Math.round((start - QRS_TOLERANCE) * fs), Math.round((end + QRS_TOLERANCE) * fs))
     .map((d) => d.i / fs);

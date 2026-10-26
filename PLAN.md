@@ -212,6 +212,11 @@ actual.
      frecuencia mediana medida en las muestras del ADC, correlación de la
      envolvente). Experimentos: filtros de ECG contra filtros de EMG, y ADC
      a 250 Hz contra 1 kHz.
+   - Hecho: arritmias en el ECG: fibrilación auricular (sin P, ondas f, RR
+     irregular), extrasístoles ventriculares (QRS ancho, T invertida, pausa
+     compensadora), bloqueo AV de segundo grado tipo Wenckebach (PR que se
+     alarga hasta una P bloqueada, 4:3) y taquicardia ventricular. El
+     detector de QRS se juzga sólo contra los latidos con QRS.
 
 Las etapas 1 a 4 son la base; la mayor parte del aprendizaje está en la 3,
 la 4 y la 5.

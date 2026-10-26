@@ -1,5 +1,5 @@
 import type { SourceKind } from '../engine/BioEngine';
-import { DEFAULT_ECG, type EcgSettings } from '../engine/ecg';
+import { DEFAULT_ECG, RHYTHMS, type EcgSettings, type Rhythm } from '../engine/ecg';
 import { DEFAULT_EMG, EMG_PATTERNS, type EmgPattern, type EmgSettings } from '../engine/emg';
 import { DEFAULT_EOG, PATTERNS, type EogPattern, type EogSettings } from '../engine/eog';
 import { dec, fmt, Knob } from './Knob';
@@ -13,6 +13,14 @@ type Props = {
   onEog: (s: EogSettings) => void;
   emg: EmgSettings;
   onEmg: (s: EmgSettings) => void;
+};
+
+const RHYTHM_HELP: Record<Rhythm, string> = {
+  sinus: 'Ritmo sinusal: cada latido nace en el nódulo sinusal, con su P antes del QRS.',
+  af: 'Fibrilación auricular: las aurículas no se contraen ordenadas. No hay onda P sino ondas "f" chicas y rápidas en la línea de base, y los QRS llegan a intervalos irregulares sin ningún patrón. La variabilidad no se usa: es siempre alta.',
+  pvc: 'Extrasístoles ventriculares (V): algunos latidos nacen en el ventrículo. Llegan antes, no tienen P, el QRS es ancho y la T va al revés; después viene una pausa compensadora. La perilla dice qué fracción de los latidos son extrasístoles.',
+  av2: 'Bloqueo AV de segundo grado tipo Wenckebach: las P son regulares, pero el PR se alarga latido a latido hasta que una P no pasa al ventrículo y queda sola. Los QRS se agrupan de a tres; el detector no tiene que contar la P bloqueada.',
+  vt: 'Taquicardia ventricular: latidos ventriculares seguidos a unos 170 lpm, anchos y sin P. La frecuencia de la perilla no se usa.',
 };
 
 const SOURCES: { id: SourceKind; label: string }[] = [
@@ -44,10 +52,23 @@ export function SourcePanel({ source, onSource, ecg, onEcg, eog, onEog, emg, onE
 
       {source === 'ecg' ? (
         <>
+          <div className="switch-rows">
+            <span className="switch-label">Ritmo</span>
+            <div className="seg wrap">
+              {(Object.keys(RHYTHMS) as Rhythm[]).map((r) => (
+                <button key={r} className={ecg.rhythm === r ? 'on' : ''} onClick={() => editEcg({ rhythm: r })}>
+                  {RHYTHMS[r]}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="knobs">
             <Knob label="Frecuencia" value={ecg.bpm} min={40} max={180} step={1} defaultValue={DEFAULT_ECG.bpm} format={fmt.bpm} onChange={(bpm) => editEcg({ bpm })} />
             <Knob label="Variabilidad" value={ecg.hrv} min={0} max={0.15} step={0.005} defaultValue={DEFAULT_ECG.hrv} format={fmt.pct} onChange={(hrv) => editEcg({ hrv })} />
             <Knob label="Amplitud R" value={ecg.amplitude} min={0.2} max={2.5} step={0.05} defaultValue={DEFAULT_ECG.amplitude} format={fmt.mv} onChange={(amplitude) => editEcg({ amplitude })} />
+            {ecg.rhythm === 'pvc' && (
+              <Knob label="Extrasístoles" value={ecg.pvcRate} min={0.02} max={0.5} step={0.01} defaultValue={DEFAULT_ECG.pvcRate} format={fmt.pct} onChange={(pvcRate) => editEcg({ pvcRate })} />
+            )}
             <Knob label="Desnivel ST" value={ecg.st} min={-0.4} max={0.4} step={0.01} defaultValue={DEFAULT_ECG.st} format={(v) => `${v > 0 ? '+' : ''}${dec(v, 2)} mV`} onChange={(st) => editEcg({ st })} />
           </div>
           <p className="muted small">
@@ -59,6 +80,7 @@ export function SourcePanel({ source, onSource, ecg, onEcg, eog, onEog, emg, onE
             entre el QRS y la T, como en un infarto o una isquemia: es lo que un pasa altos mal
             elegido deforma.
           </p>
+          <p className="muted small">{RHYTHM_HELP[ecg.rhythm]}</p>
         </>
       ) : source === 'eog' ? (
         <>

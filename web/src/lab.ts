@@ -146,6 +146,17 @@ export const BUILTIN_PRESETS: Preset[] = [
     }),
   },
   {
+    name: 'Arritmia: extrasístoles y el detector de QRS',
+    description: 'Un 20 % de extrasístoles ventriculares (V): llegan antes, sin P, con el QRS ancho y la T invertida, y después una pausa. A con la banda de monitoreo, B con la de diagnóstico. Mirar en el monitor las V y los triángulos del detector, y las columnas QRS y FC medida: la frecuencia de un ritmo irregular se mide promediando.',
+    settings: lab({
+      ecg: { rhythm: 'pvc', pvcRate: 0.2 },
+      b: (c) => {
+        c.hp = { ...DIAG_HP };
+        c.lp = { ...DIAG_LP };
+      },
+    }),
+  },
+  {
     name: 'ST: pasa altos de 0,5 Hz contra 0,05 Hz',
     description: 'ST elevado 0,2 mV y deriva fuerte. A (0,48 Hz) quita más deriva pero achica el ST; B (0,048 Hz) lo conserva. Mirar la columna ST de las métricas.',
     settings: lab({

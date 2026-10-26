@@ -208,3 +208,4 @@ input.text {
 optgroup { color: var(--muted); }
 .post-gain { margin-top: 12px; }
 .schematic.drl { max-width: 340px; }
+.seg.wrap { flex-wrap: wrap; }

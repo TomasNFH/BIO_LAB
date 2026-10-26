@@ -48,9 +48,11 @@ se puede poner, por ejemplo, un pasa altos de 0,05 Hz en una rama y uno de
 
 ## Estado
 
-Etapas 0 a 8 hechas, y de la 9 la detección de QRS, la pierna derecha y el
-EMG: esqueleto, tres fuentes sintéticas (ECG con frecuencia, variabilidad,
-amplitud y desnivel ST; EOG horizontal con sacadas, fijaciones, lectura,
+Etapas 0 a 8 hechas, y de la 9 la detección de QRS, la pierna derecha, el
+EMG y las arritmias: esqueleto, tres fuentes sintéticas (ECG con frecuencia,
+variabilidad, amplitud, desnivel ST y cinco ritmos: sinusal, fibrilación
+auricular, extrasístoles ventriculares, bloqueo AV de Wenckebach y
+taquicardia ventricular; EOG horizontal con sacadas, fijaciones, lectura,
 seguimiento y parpadeos; EMG de superficie con unidades motoras en reposo,
 sostenido, rampa o ráfagas), monitor de barrido con cuadrícula de papel ECG
 y escala en grados para el EOG, ruido ajustable con un juego por fuente (red
@@ -61,13 +63,13 @@ altos y circuito de pierna derecha (DRL), filtros pasa altos y pasa bajos de
 primer orden (RC) o segundo orden (Sallen-Key), bandas típicas de ECG, EOG y
 EMG, notch doble T y conversor A/D. Dos ramas A/B con la misma entrada y
 métricas de cada una contra la señal limpia. Vistas: espectro con la
-frecuencia de Nyquist, Bode calculado y medido, y señal en cada etapa. Trece
-experimentos listos (las preguntas del plan, la pierna derecha, el EOG y el
-EMG), ajustes guardados en el navegador, intercambio de ajustes en JSON y
-exportación de todas las señales en CSV. Detector de QRS de Pan-Tompkins en
-cada rama, con sus etapas a la vista y su sensibilidad, VPP y frecuencia
-medida contra los latidos reales. Lo que queda de la etapa 9: importar
-registros reales y arritmias. Ver [PLAN.md](PLAN.md).
+frecuencia de Nyquist, Bode calculado y medido, y señal en cada etapa.
+Catorce experimentos listos (las preguntas del plan, la pierna derecha, una
+arritmia, el EOG y el EMG), ajustes guardados en el navegador, intercambio
+de ajustes en JSON y exportación de todas las señales en CSV. Detector de
+QRS de Pan-Tompkins en cada rama, con sus etapas a la vista y su
+sensibilidad, VPP y frecuencia medida contra los latidos reales. Lo que
+queda de la etapa 9: importar registros reales. Ver [PLAN.md](PLAN.md).
 
 ## Cómo correrlo
 
