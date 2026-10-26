@@ -22,11 +22,15 @@ export type EngineState = { playing: boolean };
 export type SourceKind = 'ecg' | 'eog' | 'emg' | 'rec';
 
 // Puntos de prueba, en orden. Los dos primeros son comunes a las dos ramas;
-// el resto existe una vez por rama. Todos en mV referidos a la entrada.
+// el resto existe una vez por rama. Todos en mV referidos a la entrada,
+// salvo la salida del umbral, que es lógica (0 y 1, o −1, 0 y +1).
 export type SharedPoint = 'clean' | 'input';
-export type BranchPoint = 'amp' | 'hp' | 'lp' | 'notch' | 'out';
+export type BranchPoint = 'amp' | 'hp' | 'lp' | 'notch' | 'out' | 'dlp' | 'thr';
 export type TestPoint = SharedPoint | BranchPoint;
-const BRANCH_POINTS: BranchPoint[] = ['amp', 'hp', 'lp', 'notch', 'out'];
+const BRANCH_POINTS: BranchPoint[] = ['amp', 'hp', 'lp', 'notch', 'out', 'dlp', 'thr'];
+// Sin pulsos en este tiempo, las lpm del umbral dejan de valer.
+const RATE_TIMEOUT = 3; // s
+const RATE_BEATS = 8; // intervalos que se promedian
 const isShared = (p: TestPoint): p is SharedPoint => p === 'clean' || p === 'input';
 
 const makeBuffer = () => new Float32Array(FS * BUFFER_SECONDS);
@@ -71,6 +75,10 @@ export class BioEngine {
     a: new QrsDetector(FS, FS * BUFFER_SECONDS),
     b: new QrsDetector(FS, FS * BUFFER_SECONDS),
   };
+  // Pulsos del umbral de cada rama (índices de muestra, los últimos
+  // BUFFER_SECONDS) y cuántos hubo desde la última puesta en cero.
+  private pulses: Record<Branch, number[]> = { a: [], b: [] };
+  private pulseCount: Record<Branch, number> = { a: 0, b: 0 };
   private shared: Record<SharedPoint, Float32Array> = { clean: makeBuffer(), input: makeBuffer() };
   private taps = Object.fromEntries(
     BRANCHES.map((b) => [b, Object.fromEntries(BRANCH_POINTS.map((p) => [p, makeBuffer()]))]),
@@ -137,6 +145,34 @@ export class BioEngine {
     }
   }
 
+  // Pulsos del umbral de una rama que siguen en el búfer.
+  pulsesOf(branch: Branch): readonly number[] {
+    return this.pulses[branch];
+  }
+
+  // Pulsos contados desde la última puesta en cero.
+  countOf(branch: Branch) {
+    return this.pulseCount[branch];
+  }
+
+  resetCount() {
+    for (const b of BRANCHES) this.pulseCount[b] = 0;
+  }
+
+  // Frecuencia de los pulsos del umbral (latidos por minuto), con los
+  // últimos intervalos; null si no hay suficientes o hace mucho del último.
+  rateOf(branch: Branch): number | null {
+    const p = this.pulses[branch];
+    if (p.length < 2 || this.count - p[p.length - 1] > RATE_TIMEOUT * FS) return null;
+    const k = Math.min(RATE_BEATS, p.length - 1);
+    return (60 * FS * k) / (p[p.length - 1] - p[p.length - 1 - k]);
+  }
+
+  // Salida actual del umbral de una rama: −1, 0 o +1 (o 0 y 1).
+  directionOf(branch: Branch) {
+    return this.chains[branch].dsp.thrOut;
+  }
+
   setEcg(settings: EcgSettings) {
     this.ecg.set(settings);
   }
@@ -164,7 +200,11 @@ export class BioEngine {
   }
 
   private resetDetectors() {
-    for (const b of BRANCHES) this.qrs[b] = new QrsDetector(FS, FS * BUFFER_SECONDS);
+    for (const b of BRANCHES) {
+      this.qrs[b] = new QrsDetector(FS, FS * BUFFER_SECONDS);
+      this.pulses[b] = [];
+      this.pulseCount[b] = 0;
+    }
   }
 
   setNoise(settings: NoiseSettings) {
@@ -251,11 +291,25 @@ export class BioEngine {
         taps.hp[j] = s[1] / OVERSAMPLE;
         taps.lp[j] = s[2] / OVERSAMPLE;
         taps.notch[j] = s[3] / OVERSAMPLE;
-        // El ADC retiene su valor: se toma tal cual, sin promediar.
-        taps.out[j] = this.chains[b].out;
+        // El ADC y la etapa digital retienen su valor: se toman tal cual,
+        // sin promediar.
+        const chain = this.chains[b];
+        taps.out[j] = chain.out;
+        taps.dlp[j] = chain.dsp.lpOut;
+        taps.thr[j] = chain.dsp.thrOut;
+        if (chain.dsp.takeCrossing()) {
+          this.pulses[b].push(this.count);
+          this.pulseCount[b]++;
+        }
         this.qrs[b].process(taps.out[j], this.count);
       }
       this.count++;
+    }
+    for (const b of BRANCHES) {
+      const p = this.pulses[b];
+      const cut = p.findIndex((i) => i >= this.oldest);
+      if (cut > 0) p.splice(0, cut);
+      else if (cut < 0) p.length = 0;
     }
     this.ecg.prune(this.time - BUFFER_SECONDS);
     this.eog.prune(this.time);

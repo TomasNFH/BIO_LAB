@@ -1,5 +1,6 @@
 import { Adc, DEFAULT_ADC, type AdcSettings } from './adc';
 import { DEFAULT_AMP, InstrumentationAmp, type AmpSettings } from './amp';
+import { DEFAULT_DIGITAL, DigitalStage, type DigitalSettings } from './digital';
 import { DEFAULT_DRL, Drl, type DrlSettings } from './drl';
 import { DEFAULT_HP, DEFAULT_LP, DEFAULT_NOTCH, Filter, Notch, type FilterSettings, type NotchSettings } from './filters';
 
@@ -16,6 +17,8 @@ export type ChainSettings = {
   lp: FilterSettings;
   notch: NotchSettings;
   adc: AdcSettings;
+  // Etapa digital, después del ADC.
+  dsp: DigitalSettings;
 };
 
 export const DEFAULT_CHAIN: ChainSettings = {
@@ -26,6 +29,7 @@ export const DEFAULT_CHAIN: ChainSettings = {
   lp: DEFAULT_LP,
   notch: DEFAULT_NOTCH,
   adc: DEFAULT_ADC,
+  dsp: DEFAULT_DIGITAL,
 };
 
 // Las dos ramas arrancan iguales salvo el pasa altos: A con el de
@@ -37,8 +41,9 @@ export const DEFAULT_BRANCHES: Record<Branch, ChainSettings> = {
 
 // Una cadena de procesamiento completa: amplificador de instrumentación,
 // pasa altos, ganancia posterior, pasa bajos y notch (la parte analógica,
-// que corre a la frecuencia interna fa) y el ADC. Después de cada muestra deja la salida
-// de cada etapa en sus campos, para los puntos de prueba.
+// que corre a la frecuencia interna fa), el ADC y la etapa digital (que
+// corre a la fs del ADC). Después de cada muestra deja la salida de cada
+// etapa en sus campos, para los puntos de prueba.
 export class Chain {
   readonly amp: InstrumentationAmp;
   readonly drl: Drl;
@@ -46,6 +51,7 @@ export class Chain {
   readonly lp: Filter;
   readonly notch: Notch;
   readonly adc: Adc;
+  readonly dsp: DigitalStage;
   ampOut = 0;
   hpOut = 0;
   lpOut = 0;
@@ -60,6 +66,7 @@ export class Chain {
     this.lp = new Filter('lp', fs, s.lp);
     this.notch = new Notch(fs, s.notch);
     this.adc = new Adc(s.adc);
+    this.dsp = new DigitalStage(s.dsp);
     this.postGain = s.post.gain;
   }
 
@@ -71,6 +78,7 @@ export class Chain {
     this.lp.set(s.lp);
     this.notch.set(s.notch);
     this.adc.set(s.adc);
+    this.dsp.set(s.dsp);
   }
 
   // Ganancia entre los electrodos y la entrada del ADC (los filtros tienen
@@ -113,8 +121,11 @@ export class Chain {
       // que se vuelve a referir a la entrada.
       const g = this.gain;
       this.out = (this.adc.process((this.notchOut * g) / 1000, n, fa) * 1000) / g;
+      // La etapa digital sólo trabaja cuando llega una muestra nueva.
+      if (this.adc.sampled) this.dsp.process(this.out, n / fa, this.adc.fs);
     } else {
       this.out = this.notchOut;
+      this.dsp.bypass(this.out);
     }
   }
 }

@@ -30,6 +30,7 @@ export class Adc {
   private settings: AdcSettings;
   private held = 0; // último valor convertido, V
   private clipped = false;
+  sampled = false; // ¿la última llamada a process convirtió una muestra nueva?
 
   constructor(settings: AdcSettings) {
     this.settings = { ...settings };
@@ -52,7 +53,8 @@ export class Adc {
   // si no, devuelve lo retenido.
   process(v: number, n: number, fa: number) {
     const { fs, range } = this.settings;
-    if (n % Math.round(fa / fs) === 0) {
+    this.sampled = n % Math.round(fa / fs) === 0;
+    if (this.sampled) {
       const q = lsb(this.settings);
       let x = v;
       if (x > range) x = range;

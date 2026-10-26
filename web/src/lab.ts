@@ -1,5 +1,6 @@
 import type { SourceKind } from './engine/BioEngine';
-import { DEFAULT_BRANCHES, DEFAULT_CHAIN, type Branch, type ChainSettings } from './engine/chain';
+import { BRANCHES, DEFAULT_BRANCHES, DEFAULT_CHAIN, type Branch, type ChainSettings } from './engine/chain';
+import { DEFAULT_DIGITAL } from './engine/digital';
 import { DEFAULT_ECG, type EcgSettings } from './engine/ecg';
 import { DEFAULT_EMG, type EmgSettings } from './engine/emg';
 import { DEFAULT_EOG, type EogSettings } from './engine/eog';
@@ -45,7 +46,17 @@ function merge<T>(base: T, value: unknown): T {
   return out as T;
 }
 
-export const normalize = (raw: unknown): LabSettings => merge(DEFAULT_LAB, raw);
+// Los ajustes guardados antes de la etapa digital no la traen: `merge` la
+// completa con la de por defecto. El modo del umbral, además, tiene que ser
+// uno de los conocidos.
+export function normalize(raw: unknown): LabSettings {
+  const s = merge(DEFAULT_LAB, raw);
+  for (const b of BRANCHES) {
+    const thr = s.chains[b].dsp.thr;
+    if (thr.mode !== 'one' && thr.mode !== 'two') thr.mode = DEFAULT_DIGITAL.thr.mode;
+  }
+  return s;
+}
 
 // Arma un ajuste a partir de los valores por defecto y los cambios de cada
 // parte.
