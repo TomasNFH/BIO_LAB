@@ -11,6 +11,7 @@ export function Logo({ size = 34 }: { size?: number }) {
         strokeLinecap="round"
       />
       <path
+        className="logo-beat"
         d="M7.6 25H12l1.4-2.4 1.8 5 2.6-10.6 2 8H26.4"
         fill="none"
         stroke="currentColor"

@@ -172,7 +172,9 @@ export function App() {
     <div className="app">
       <header className="header">
         <Logo />
-        <h1>Bio Lab</h1>
+        <h1 className="wordmark" aria-label="Bio Lab">
+          <span aria-hidden="true">bi<span className="dot-o">o</span> lab</span>
+        </h1>
       </header>
 
       <div className="layout">

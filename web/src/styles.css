@@ -45,13 +45,24 @@
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; }
+body { margin: 0; border-top: 6px solid var(--terra); } /* franja del marco retro */
 
 .app { max-width: 760px; margin: 0 auto; padding: 24px 16px 64px; }
 .header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
-.header .logo { color: var(--accent); flex: none; }
+.header .logo { color: var(--espresso); flex: none; }
+.header .logo .logo-beat { stroke: var(--terra); }
 .header-btn { margin-left: auto; }
-.header h1 { margin: 0; font-family: var(--font-display); font-weight: 800; font-size: 1.7rem; letter-spacing: -0.02em; }
+.header h1 { margin: 0; font-family: var(--font-display); font-weight: 800; font-size: 2rem; line-height: 1; letter-spacing: -0.04em; }
+
+/* Marca «bio lab»: la «o» lleva un punto turquesa en el hueco, como un
+   electrodo. El centro va a media altura de la x (0,5ex) sobre la línea de
+   base; en Outfit, la base queda 0,14em por encima del borde de la caja. */
+.wordmark .dot-o { position: relative; display: inline-block; }
+.wordmark .dot-o::after {
+  content: ''; position: absolute; left: 50%; bottom: calc(0.5ex + 0.14em);
+  width: 0.2em; height: 0.2em; border-radius: 50%;
+  background: var(--turq); transform: translate(-50%, 50%);
+}
 .phase { color: var(--muted); font-size: 0.9rem; }
 
 .panel {
