@@ -4,6 +4,7 @@ import { DEFAULT_EMG, EmgSource, type EmgSettings } from './emg';
 import { DEFAULT_EOG, EogSource, type EogSettings } from './eog';
 import { DEFAULT_NOISE, NoiseSource, type NoiseSettings } from './noise';
 import { QrsDetector } from './qrs';
+import { RecordingSource, type Recording } from './recording';
 
 export const FS = 1000; // frecuencia de las vistas y los búferes, Hz
 // La parte analógica (fuente, ruido, amplificador y filtros) corre más
@@ -18,7 +19,7 @@ const MAX_STEP = 0.1;
 export type EngineState = { playing: boolean };
 
 // Señal fisiológica que entra a la cadena.
-export type SourceKind = 'ecg' | 'eog' | 'emg';
+export type SourceKind = 'ecg' | 'eog' | 'emg' | 'rec';
 
 // Puntos de prueba, en orden. Los dos primeros son comunes a las dos ramas;
 // el resto existe una vez por rama. Todos en mV referidos a la entrada.
@@ -56,6 +57,7 @@ export class BioEngine {
   readonly ecg = new EcgSource(DEFAULT_ECG);
   readonly eog = new EogSource(DEFAULT_EOG);
   readonly emg = new EmgSource(DEFAULT_EMG);
+  readonly rec = new RecordingSource();
   source: SourceKind = 'ecg';
   readonly noise = new NoiseSource(FA, DEFAULT_NOISE);
   readonly chains: Record<Branch, Chain> = {
@@ -150,6 +152,18 @@ export class BioEngine {
   setSource(kind: SourceKind) {
     if (kind === this.source) return;
     this.source = kind;
+    if (kind === 'rec') this.rec.restart(this.time);
+    this.resetDetectors();
+  }
+
+  // Registro real (o null) y canal que se reproduce.
+  setRecording(rec: Recording | null, channel: number) {
+    const changed = rec !== this.rec.recording;
+    this.rec.set(rec, channel, this.time);
+    if (changed && this.source === 'rec') this.resetDetectors();
+  }
+
+  private resetDetectors() {
     for (const b of BRANCHES) this.qrs[b] = new QrsDetector(FS, FS * BUFFER_SECONDS);
   }
 
@@ -206,7 +220,13 @@ export class BioEngine {
         const na = this.count * OVERSAMPLE + k;
         const t = na / FA;
         const clean =
-          this.source === 'ecg' ? this.ecg.sample(t) : this.source === 'eog' ? this.eog.sample(t) : this.emg.sample(t);
+          this.source === 'ecg'
+            ? this.ecg.sample(t)
+            : this.source === 'eog'
+              ? this.eog.sample(t)
+              : this.source === 'emg'
+                ? this.emg.sample(t)
+                : this.rec.sample(t);
         // Tensión diferencial entre los electrodos y modo común, en mV.
         const vd = clean + this.noise.sample(t);
         const vcm = this.noise.common;

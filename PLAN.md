@@ -217,6 +217,13 @@ actual.
      compensadora), bloqueo AV de segundo grado tipo Wenckebach (PR que se
      alarga hasta una P bloqueada, 4:3) y taquicardia ventricular. El
      detector de QRS se juzga sólo contra los latidos con QRS.
+   - Hecho: registros reales como fuente. Se cargan desde la computadora
+     (no se suben): CSV con o sin columna de tiempo (incluida la exportación
+     CSV de PhysioNet y la de este laboratorio, con coma o punto decimal) y
+     WFDB de PhysioNet (.hea, .dat en formatos 212, 16 y 80, y .atr con las
+     anotaciones). El registro se repite en bucle por la cadena; con
+     anotaciones, el monitor muestra los símbolos de cada latido y el
+     detector de QRS se mide contra ellas.
 
 Las etapas 1 a 4 son la base; la mayor parte del aprendizaje está en la 3,
 la 4 y la 5.

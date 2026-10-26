@@ -4,7 +4,7 @@ import { BRANCHES, DEFAULT_BRANCHES, type Branch, type ChainSettings } from './e
 import { DEFAULT_ECG, type EcgSettings } from './engine/ecg';
 import { DEFAULT_EMG, type EmgSettings } from './engine/emg';
 import { DEFAULT_EOG, type EogSettings } from './engine/eog';
-import { DEFAULT_NOISE, DEFAULT_NOISE_EMG, DEFAULT_NOISE_EOG, noiseBand, type NoiseId, type NoiseSettings } from './engine/noise';
+import { DEFAULT_NOISE, DEFAULT_NOISE_EMG, DEFAULT_NOISE_EOG, DEFAULT_NOISE_REC, noiseBand, type NoiseId, type NoiseSettings } from './engine/noise';
 import { AdcPanel } from './components/AdcPanel';
 import { AmpPanel } from './components/AmpPanel';
 import { BranchBar } from './components/BranchBar';
@@ -18,6 +18,7 @@ import { NotchPanel } from './components/NotchPanel';
 import { PresetPanel } from './components/PresetPanel';
 import { SourcePanel } from './components/SourcePanel';
 import type { LabSettings } from './lab';
+import type { Recording } from './engine/recording';
 import { DEFAULT_MONITOR, MonitorView, type MonitorOptions } from './views/MonitorView';
 import { BodeView } from './views/BodeView';
 import { QrsView } from './views/QrsView';
@@ -56,11 +57,15 @@ export function App() {
   const [ecg, setEcg] = useState<EcgSettings>(DEFAULT_ECG);
   const [eog, setEog] = useState<EogSettings>(DEFAULT_EOG);
   const [emg, setEmg] = useState<EmgSettings>(DEFAULT_EMG);
+  // Registro real: vive sólo en esta página (no va en los ajustes guardados).
+  const [recording, setRecording] = useState<Recording | null>(null);
+  const [recChannel, setRecChannel] = useState(0);
   // Cada fuente tiene su propio juego de ruidos.
   const [noises, setNoises] = useState<Record<SourceKind, NoiseSettings>>({
     ecg: DEFAULT_NOISE,
     eog: DEFAULT_NOISE_EOG,
     emg: DEFAULT_NOISE_EMG,
+    rec: DEFAULT_NOISE_REC,
   });
   const noise = noises[source];
   const setNoise = (n: NoiseSettings) => setNoises((all) => ({ ...all, [source]: n }));
@@ -83,6 +88,7 @@ export function App() {
   useEffect(() => eng.setEcg(ecg), [eng, ecg]);
   useEffect(() => eng.setEog(eog), [eng, eog]);
   useEffect(() => eng.setEmg(emg), [eng, emg]);
+  useEffect(() => eng.setRecording(recording, recChannel), [eng, recording, recChannel]);
   useEffect(() => eng.setNoise(noise), [eng, noise]);
   useEffect(() => {
     for (const b of BRANCHES) eng.setChain(b, chains[b]);
@@ -110,8 +116,8 @@ export function App() {
   // fuente se ajustan la ganancia y las marcas del monitor.
   const changeSource = (s: SourceKind) => {
     setSource(s);
-    if (s !== 'ecg') setView((v) => (v === 'qrs' ? 'spectrum' : v));
-    setMonitor((m) => ({ ...m, gain: s === 'eog' ? 20 : 10, labels: s === 'ecg' }));
+    if (s !== 'ecg' && s !== 'rec') setView((v) => (v === 'qrs' ? 'spectrum' : v));
+    setMonitor((m) => ({ ...m, gain: s === 'eog' ? 20 : 10, labels: s === 'ecg' || s === 'rec' }));
   };
 
   // El ajuste completo, para guardarlo, y cómo cargar uno.
@@ -174,7 +180,7 @@ export function App() {
                 label={(v) => `${v} mm/mV`}
                 onChange={(gain) => editMonitor({ gain })}
               />
-              {source === 'ecg' && (
+              {(source === 'ecg' || source === 'rec') && (
                 <label className="check">
                   <input
                     type="checkbox"
@@ -196,7 +202,7 @@ export function App() {
                 swatch={branch === 'a' ? 'branch-b' : 'branch-a'}
                 label={`Rama ${other}`}
               />
-              {source === 'ecg' && (
+              {(source === 'ecg' || source === 'rec') && (
                 <label className="check">
                   <input
                     type="checkbox"
@@ -240,7 +246,7 @@ export function App() {
           <section className="panel">
             <div className="panel-head">
               <div className="tabs" role="tablist">
-                {VIEW_TABS.filter((t) => t.id !== 'qrs' || source === 'ecg').map((t) => (
+                {VIEW_TABS.filter((t) => t.id !== 'qrs' || source === 'ecg' || source === 'rec').map((t) => (
                   <button
                     key={t.id}
                     role="tab"
@@ -326,7 +332,7 @@ export function App() {
                 </p>
               </>
             )}
-            {view === 'qrs' && source === 'ecg' && (
+            {view === 'qrs' && (source === 'ecg' || source === 'rec') && (
               <>
                 <QrsView engine={eng} branch={branch} />
                 <p className="muted small">
@@ -381,11 +387,18 @@ export function App() {
             onEog={setEog}
             emg={emg}
             onEmg={setEmg}
+            recording={recording}
+            recChannel={recChannel}
+            onRecording={(r) => {
+              setRecording(r);
+              setRecChannel(0);
+            }}
+            onRecChannel={setRecChannel}
           />
 
           <NoisePanel
             settings={noise}
-            defaults={source === 'ecg' ? DEFAULT_NOISE : source === 'eog' ? DEFAULT_NOISE_EOG : DEFAULT_NOISE_EMG}
+            defaults={{ ecg: DEFAULT_NOISE, eog: DEFAULT_NOISE_EOG, emg: DEFAULT_NOISE_EMG, rec: DEFAULT_NOISE_REC }[source]}
             onChange={setNoise}
             onFocusNoise={setFocusNoise}
           />

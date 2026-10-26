@@ -2,7 +2,9 @@ import type { SourceKind } from '../engine/BioEngine';
 import { DEFAULT_ECG, RHYTHMS, type EcgSettings, type Rhythm } from '../engine/ecg';
 import { DEFAULT_EMG, EMG_PATTERNS, type EmgPattern, type EmgSettings } from '../engine/emg';
 import { DEFAULT_EOG, PATTERNS, type EogPattern, type EogSettings } from '../engine/eog';
+import type { Recording } from '../engine/recording';
 import { dec, fmt, Knob } from './Knob';
+import { RecordingPanel } from './RecordingPanel';
 
 type Props = {
   source: SourceKind;
@@ -13,6 +15,10 @@ type Props = {
   onEog: (s: EogSettings) => void;
   emg: EmgSettings;
   onEmg: (s: EmgSettings) => void;
+  recording: Recording | null;
+  recChannel: number;
+  onRecording: (r: Recording) => void;
+  onRecChannel: (c: number) => void;
 };
 
 const RHYTHM_HELP: Record<Rhythm, string> = {
@@ -27,14 +33,16 @@ const SOURCES: { id: SourceKind; label: string }[] = [
   { id: 'ecg', label: 'ECG' },
   { id: 'eog', label: 'EOG' },
   { id: 'emg', label: 'EMG' },
+  { id: 'rec', label: 'Registro' },
 ];
 
 // Fuente de la señal: ECG, EOG o EMG sintéticos, cada uno con sus perillas.
-export function SourcePanel({ source, onSource, ecg, onEcg, eog, onEog, emg, onEmg }: Props) {
+export function SourcePanel({ source, onSource, ecg, onEcg, eog, onEog, emg, onEmg, recording, recChannel, onRecording, onRecChannel }: Props) {
   const editEcg = (patch: Partial<EcgSettings>) => onEcg({ ...ecg, ...patch });
   const editEog = (patch: Partial<EogSettings>) => onEog({ ...eog, ...patch });
   const editEmg = (patch: Partial<EmgSettings>) => onEmg({ ...emg, ...patch });
   const reset = () => (source === 'ecg' ? onEcg(DEFAULT_ECG) : source === 'eog' ? onEog(DEFAULT_EOG) : onEmg(DEFAULT_EMG));
+  const rec = source === 'rec';
 
   return (
     <section className="panel">
@@ -47,10 +55,12 @@ export function SourcePanel({ source, onSource, ecg, onEcg, eog, onEog, emg, onE
             </button>
           ))}
         </div>
-        <button onClick={reset}>Restablecer</button>
+        {!rec && <button onClick={reset}>Restablecer</button>}
       </div>
 
-      {source === 'ecg' ? (
+      {rec ? (
+        <RecordingPanel recording={recording} channel={recChannel} onLoad={onRecording} onChannel={onRecChannel} />
+      ) : source === 'ecg' ? (
         <>
           <div className="switch-rows">
             <span className="switch-label">Ritmo</span>

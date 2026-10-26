@@ -46,6 +46,9 @@ export const DEFAULT_NOISE_EMG: NoiseSettings = {
   white: { on: true, level: 0.005 },
 };
 
+// Un registro real ya trae su propio ruido: por defecto no se agrega nada.
+export const DEFAULT_NOISE_REC: NoiseSettings = { ...DEFAULT_NOISE, enabled: false };
+
 // Banda de frecuencias donde vive cada ruido, para marcarla en el espectro.
 export function noiseBand(id: NoiseId, s: NoiseSettings): [number, number] {
   switch (id) {

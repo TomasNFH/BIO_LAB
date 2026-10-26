@@ -4,7 +4,7 @@ import { DEFAULT_ECG, type EcgSettings } from './engine/ecg';
 import { DEFAULT_EMG, type EmgSettings } from './engine/emg';
 import { DEFAULT_EOG, type EogSettings } from './engine/eog';
 import { DEFAULT_HP, DEFAULT_LP } from './engine/filters';
-import { DEFAULT_NOISE, DEFAULT_NOISE_EMG, DEFAULT_NOISE_EOG, type NoiseSettings } from './engine/noise';
+import { DEFAULT_NOISE, DEFAULT_NOISE_EMG, DEFAULT_NOISE_EOG, DEFAULT_NOISE_REC, type NoiseSettings } from './engine/noise';
 
 // Todo lo que define un experimento: la fuente, su señal, los ruidos de
 // cada fuente y las dos cadenas. Las vistas no son parte del ajuste.
@@ -28,7 +28,7 @@ export const DEFAULT_LAB: LabSettings = {
   ecg: DEFAULT_ECG,
   eog: DEFAULT_EOG,
   emg: DEFAULT_EMG,
-  noises: { ecg: DEFAULT_NOISE, eog: DEFAULT_NOISE_EOG, emg: DEFAULT_NOISE_EMG },
+  noises: { ecg: DEFAULT_NOISE, eog: DEFAULT_NOISE_EOG, emg: DEFAULT_NOISE_EMG, rec: DEFAULT_NOISE_REC },
   chains: DEFAULT_BRANCHES,
 };
 

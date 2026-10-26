@@ -15,8 +15,7 @@ const COMMON: Column[] = [
   { head: 'Error eficaz', title: 'Valor eficaz de salida − señal limpia', cell: (m) => `${dec(m.errorRms * 1000, 0)} µV` },
 ];
 
-const BY_SOURCE: Record<SourceKind, Column[]> = {
-  ecg: [
+const ECG_COLUMNS: Column[] = [
     {
       head: 'Onda R',
       title: 'Altura de la onda R medida, en % de la real',
@@ -39,7 +38,13 @@ const BY_SOURCE: Record<SourceKind, Column[]> = {
       cell: (m) =>
         m.kind === 'ecg' && m.qrs && Number.isFinite(m.qrs.bpmMeasured) ? `${dec(m.qrs.bpmMeasured, 0)} / ${dec(m.qrs.bpmTrue, 0)} lpm` : '—',
     },
-  ],
+];
+
+// Un registro real se mide como un ECG (sin anotaciones, las columnas de
+// latidos quedan vacías).
+const BY_SOURCE: Record<SourceKind, Column[]> = {
+  ecg: ECG_COLUMNS,
+  rec: ECG_COLUMNS,
   emg: [
     {
       head: 'Amplitud eficaz',
@@ -93,7 +98,7 @@ export function MetricsTable({ engine, source }: { engine: BioEngine; source: So
         <tbody>
           {BRANCHES.map((b) => {
             // Al cambiar de fuente, hasta la próxima medición queda la vieja.
-            const m = metrics[b]?.kind === source ? metrics[b] : null;
+            const m = metrics[b]?.kind === (source === 'rec' ? 'ecg' : source) ? metrics[b] : null;
             return (
               <tr key={b}>
                 <td>

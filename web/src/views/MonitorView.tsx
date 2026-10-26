@@ -119,7 +119,8 @@ export function MonitorView({ engine, options, branch }: { engine: BioEngine; op
     // Un triángulo sobre cada QRS que encontró el detector de la rama; los
     // de búsqueda hacia atrás, huecos.
     const qrs = engine.qrs[branch];
-    if (detections && engine.source === 'ecg') {
+    const ecgLike = engine.source === 'ecg' || engine.source === 'rec';
+    if (detections && ecgLike) {
       g.fillStyle = color;
       g.strokeStyle = color;
       g.lineWidth = 1.2;
@@ -136,7 +137,21 @@ export function MonitorView({ engine, options, branch }: { engine: BioEngine; op
       }
     }
 
-    if (labels && !eog) {
+    // Registro real: el símbolo que puso el cardiólogo en cada latido, en
+    // una fila propia abajo, como en los visores de anotaciones.
+    if (labels && engine.source === 'rec') {
+      g.font = '600 12px system-ui, sans-serif';
+      g.textAlign = 'center';
+      for (const b of engine.rec.beatsBetween(start / fs, now)) {
+        const i = Math.round(b.r * fs);
+        if (i < start || i >= end) continue;
+        g.fillStyle = b.kind === 'V' ? COLORS.danger : COLORS.label;
+        g.fillText(b.symbol, xOf(i), h - 26);
+      }
+      g.textAlign = 'left';
+    }
+
+    if (labels && engine.source === 'ecg') {
       g.font = '600 11px system-ui, sans-serif';
       g.textAlign = 'center';
       g.fillStyle = COLORS.label;
@@ -162,7 +177,11 @@ export function MonitorView({ engine, options, branch }: { engine: BioEngine; op
     g.font = '600 15px system-ui, sans-serif';
     g.fillStyle = color;
     g.textAlign = 'right';
-    if (engine.source === 'emg') {
+    if (engine.source === 'rec') {
+      const rec = engine.rec.recording;
+      const shown = qrs.detections.length > 2 ? ` · FC medida ${dec(60 / (qrs.rrMean / fs), 0)} lpm` : '';
+      g.fillText(`Rama ${branch.toUpperCase()} · ${rec ? `registro ${rec.name}` : 'sin registro cargado'}${shown}`, w - 10, 22);
+    } else if (engine.source === 'emg') {
       g.fillText(`Rama ${branch.toUpperCase()} · EMG · esfuerzo ${dec(engine.emg.currentLevel * 100, 0)} %`, w - 10, 22);
     } else if (eog) {
       // La mirada real (sin ruido ni filtros), para comparar con el trazo.

@@ -209,3 +209,4 @@ optgroup { color: var(--muted); }
 .post-gain { margin-top: 12px; }
 .schematic.drl { max-width: 340px; }
 .seg.wrap { flex-wrap: wrap; }
+input.text.short { flex: 0 0 90px; margin: 0 4px; }

@@ -48,28 +48,29 @@ se puede poner, por ejemplo, un pasa altos de 0,05 Hz en una rama y uno de
 
 ## Estado
 
-Etapas 0 a 8 hechas, y de la 9 la detección de QRS, la pierna derecha, el
-EMG y las arritmias: esqueleto, tres fuentes sintéticas (ECG con frecuencia,
-variabilidad, amplitud, desnivel ST y cinco ritmos: sinusal, fibrilación
-auricular, extrasístoles ventriculares, bloqueo AV de Wenckebach y
-taquicardia ventricular; EOG horizontal con sacadas, fijaciones, lectura,
-seguimiento y parpadeos; EMG de superficie con unidades motoras en reposo,
-sostenido, rampa o ráfagas), monitor de barrido con cuadrícula de papel ECG
-y escala en grados para el EOG, ruido ajustable con un juego por fuente (red
-eléctrica diferencial y en modo común, deriva de línea de base, EMG, ruido
-blanco, offset de electrodos, artefactos de movimiento), amplificador de
-instrumentación de tres op-amps con ganancia posterior después del pasa
-altos y circuito de pierna derecha (DRL), filtros pasa altos y pasa bajos de
-primer orden (RC) o segundo orden (Sallen-Key), bandas típicas de ECG, EOG y
-EMG, notch doble T y conversor A/D. Dos ramas A/B con la misma entrada y
-métricas de cada una contra la señal limpia. Vistas: espectro con la
-frecuencia de Nyquist, Bode calculado y medido, y señal en cada etapa.
-Catorce experimentos listos (las preguntas del plan, la pierna derecha, una
-arritmia, el EOG y el EMG), ajustes guardados en el navegador, intercambio
-de ajustes en JSON y exportación de todas las señales en CSV. Detector de
-QRS de Pan-Tompkins en cada rama, con sus etapas a la vista y su
-sensibilidad, VPP y frecuencia medida contra los latidos reales. Lo que
-queda de la etapa 9: importar registros reales. Ver [PLAN.md](PLAN.md).
+Las diez etapas del plan (0 a 9) están hechas: esqueleto, tres fuentes
+sintéticas (ECG con frecuencia, variabilidad, amplitud, desnivel ST y cinco
+ritmos: sinusal, fibrilación auricular, extrasístoles ventriculares, bloqueo
+AV de Wenckebach y taquicardia ventricular; registros reales en CSV o WFDB
+de PhysioNet, con sus anotaciones; EOG horizontal con sacadas, fijaciones,
+lectura, seguimiento y parpadeos; EMG de superficie con unidades motoras en
+reposo, sostenido, rampa o ráfagas), monitor de barrido con cuadrícula de
+papel ECG y escala en grados para el EOG, ruido ajustable con un juego por
+fuente (red eléctrica diferencial y en modo común, deriva de línea de base,
+EMG, ruido blanco, offset de electrodos, artefactos de movimiento),
+amplificador de instrumentación de tres op-amps con ganancia posterior
+después del pasa altos y circuito de pierna derecha (DRL), filtros pasa
+altos y pasa bajos de primer orden (RC) o segundo orden (Sallen-Key), bandas
+típicas de ECG, EOG y EMG, notch doble T y conversor A/D. Dos ramas A/B con
+la misma entrada y métricas de cada una contra la señal limpia. Vistas:
+espectro con la frecuencia de Nyquist, Bode calculado y medido, y señal en
+cada etapa. Catorce experimentos listos (las preguntas del plan, la pierna
+derecha, una arritmia, el EOG y el EMG), ajustes guardados en el navegador,
+intercambio de ajustes en JSON y exportación de todas las señales en CSV.
+Detector de QRS de Pan-Tompkins en cada rama, con sus etapas a la vista y su
+sensibilidad, VPP y frecuencia medida contra los latidos reales. El detector
+también se mide contra las anotaciones de los cardiólogos cuando un registro
+real las trae. Ver [PLAN.md](PLAN.md).
 
 ## Cómo correrlo
 
@@ -119,6 +120,7 @@ git tag v0.1.0 && git push origin v0.1.0
 | Métricas contra la señal limpia | `web/src/engine/metrics.ts`, `web/src/components/MetricsTable.tsx` |
 | Experimentos, ajustes guardados y JSON | `web/src/lab.ts`, `web/src/components/PresetPanel.tsx` |
 | Exportación CSV | `web/src/export.ts` |
+| Registros reales: CSV, WFDB (.hea, .dat 212/16/80, .atr) y reproducción | `web/src/engine/recording.ts`, `web/src/components/RecordingPanel.tsx` |
 | Detector de QRS (Pan-Tompkins) y su vista | `web/src/engine/qrs.ts`, `web/src/views/QrsView.tsx` |
 | Monitor de barrido con cuadrícula de papel ECG | `web/src/views/MonitorView.tsx` |
 | Espectro de la salida, con SNR | `web/src/views/SpectrumView.tsx`, `web/src/views/spectrum.ts` |
