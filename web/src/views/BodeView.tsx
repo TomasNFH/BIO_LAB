@@ -2,7 +2,7 @@ import type { BioEngine } from '../engine/BioEngine';
 import type { Branch, ChainSettings } from '../engine/chain';
 import { cutoff, filterResponse, notchResponse } from '../engine/filters';
 import { hz } from '../components/units';
-import { BRANCH_COLORS, COLORS, useCanvasLoop } from './canvas';
+import { BRANCH_COLORS, COLORS, font, useCanvasLoop } from './canvas';
 import { drawFreqGrid, forEachColumn, getAnalyzer, logAxis } from './spectrum';
 
 const AXIS = logAxis(0.01, 500);
@@ -31,7 +31,7 @@ export function BodeView({ engine, branch, settings }: { engine: BioEngine; bran
     const phaseY = (deg: number) => hMag + 10 + ((180 - deg) / 360) * (h - hMag - 24);
 
     drawFreqGrid(g, AXIS, w, 0, h);
-    g.font = '10px system-ui, sans-serif';
+    g.font = font(10);
     const hline = (y: number, strong: boolean) => {
       g.strokeStyle = strong ? COLORS.gridStrong : COLORS.grid;
       g.beginPath();
@@ -94,7 +94,7 @@ export function BodeView({ engine, branch, settings }: { engine: BioEngine; bran
     curve(all, BRANCH_COLORS[branch], 1.8, []);
 
     // Marcas en cada frecuencia de corte.
-    g.font = '600 11px system-ui, sans-serif';
+    g.font = font(11, 600);
     const marks: [boolean, number, string, string, number][] = [
       [hp.on, cutoff(hp), 'PA', COLORS.hp, 16],
       [lp.on, cutoff(lp), 'PB', COLORS.lp, -8],
@@ -134,7 +134,7 @@ export function BodeView({ engine, branch, settings }: { engine: BioEngine; bran
     });
 
     g.fillStyle = COLORS.label;
-    g.font = '10px system-ui, sans-serif';
+    g.font = font(10);
     g.fillText('Hz', w - 18, h - 16);
   });
 

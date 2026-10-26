@@ -1,7 +1,7 @@
 import type { BioEngine, TestPoint } from '../engine/BioEngine';
 import type { Branch } from '../engine/chain';
 import { dec } from '../components/Knob';
-import { BRANCH_COLORS, COLORS, useCanvasLoop } from './canvas';
+import { BRANCH_COLORS, COLORS, font, useCanvasLoop } from './canvas';
 
 export type StagesOptions = {
   range: number; // mV desde el centro hasta el borde de cada fila
@@ -78,7 +78,7 @@ export function StagesView({ engine, options, branch }: { engine: BioEngine; opt
       trace(point, BRANCH_COLORS[branch], 1.3);
       g.restore();
 
-      g.font = '11px system-ui, sans-serif';
+      g.font = font(11);
       g.fillStyle = COLORS.label;
       g.fillText(label, 6, top + 14);
 
@@ -86,7 +86,7 @@ export function StagesView({ engine, options, branch }: { engine: BioEngine; opt
       if (end > start) {
         const v = engine.tapAt(point, end - 1, branch);
         if (Math.abs(v) > options.range) {
-          g.font = '600 11px system-ui, sans-serif';
+          g.font = font(11, 600);
           g.fillStyle = COLORS.warning;
           g.textAlign = 'right';
           g.fillText(`${v > 0 ? '↑' : '↓'} ${dec(v, 1)} mV`, w - 6, top + 14);
@@ -95,7 +95,7 @@ export function StagesView({ engine, options, branch }: { engine: BioEngine; opt
       }
     });
 
-    g.font = '10px system-ui, sans-serif';
+    g.font = font(10);
     g.fillStyle = COLORS.label;
     g.fillText(`Rama ${branch.toUpperCase()} · ±${options.range} mV por fila · 1 s por división`, 6, h - 4);
   });

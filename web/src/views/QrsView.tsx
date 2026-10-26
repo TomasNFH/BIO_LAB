@@ -1,7 +1,7 @@
 import type { BioEngine } from '../engine/BioEngine';
 import type { Branch } from '../engine/chain';
 import type { QrsPoint } from '../engine/qrs';
-import { BRANCH_COLORS, COLORS, useCanvasLoop } from './canvas';
+import { BRANCH_COLORS, COLORS, font, useCanvasLoop } from './canvas';
 
 const ROWS: { point: QrsPoint; label: string }[] = [
   { point: 'x', label: 'Salida de la cadena (entrada del detector)' },
@@ -87,12 +87,12 @@ export function QrsView({ engine, branch }: { engine: BioEngine; branch: Branch 
         g.setLineDash([]);
       }
 
-      g.font = '11px system-ui, sans-serif';
+      g.font = font(11);
       g.fillStyle = COLORS.label;
       g.fillText(label, 6, top + 14);
     });
 
-    g.font = '10px system-ui, sans-serif';
+    g.font = font(10);
     g.fillStyle = COLORS.label;
     g.textAlign = 'right';
     g.fillText(`Rama ${branch.toUpperCase()} · ${SECONDS} s`, w - 6, h - 4);

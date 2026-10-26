@@ -1,7 +1,7 @@
 import type { BioEngine } from '../engine/BioEngine';
 import { BRANCHES, type Branch } from '../engine/chain';
 import { fft } from '../engine/dsp';
-import { COLORS } from './canvas';
+import { COLORS, font } from './canvas';
 
 export const N = 8192; // 8,2 s a 1 kHz: resolución de 0,12 Hz
 const UPDATE_MS = 100;
@@ -104,7 +104,7 @@ const TICKS = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200, 5
 
 // Líneas y etiquetas de frecuencia, entre y0 e y1.
 export function drawFreqGrid(g: CanvasRenderingContext2D, axis: LogAxis, w: number, y0: number, y1: number, labels = true) {
-  g.font = '10px system-ui, sans-serif';
+  g.font = font(10);
   g.lineWidth = 1;
   g.strokeStyle = COLORS.grid;
   g.fillStyle = COLORS.label;

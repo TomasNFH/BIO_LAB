@@ -1,6 +1,6 @@
 import type { BioEngine } from '../engine/BioEngine';
 import type { Branch } from '../engine/chain';
-import { BRANCH_COLORS, COLORS, useCanvasLoop } from './canvas';
+import { BRANCH_COLORS, COLORS, font, useCanvasLoop } from './canvas';
 import { drawFreqGrid, forEachColumn, getAnalyzer, logAxis } from './spectrum';
 
 export type SpectrumOptions = {
@@ -57,7 +57,7 @@ export function SpectrumView({
       g.lineTo(Math.round(xn) + 0.5, h);
       g.stroke();
       g.setLineDash([]);
-      g.font = '600 11px system-ui, sans-serif';
+      g.font = font(11, 600);
       g.fillStyle = COLORS.warning;
       g.textAlign = xn > w - 80 ? 'right' : 'left';
       g.fillText(`Nyquist ${adc.fs / 2} Hz`, xn + (xn > w - 80 ? -5 : 5), 26);

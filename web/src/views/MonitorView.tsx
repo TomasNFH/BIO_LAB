@@ -1,7 +1,7 @@
 import type { BioEngine } from '../engine/BioEngine';
 import type { Branch } from '../engine/chain';
 import { dec } from '../components/Knob';
-import { BRANCH_COLORS, COLORS, useCanvasLoop } from './canvas';
+import { BRANCH_COLORS, COLORS, font, useCanvasLoop } from './canvas';
 
 export type MonitorOptions = {
   speed: number; // velocidad de barrido, mm/s
@@ -140,7 +140,7 @@ export function MonitorView({ engine, options, branch }: { engine: BioEngine; op
     // Registro real: el símbolo que puso el cardiólogo en cada latido, en
     // una fila propia abajo, como en los visores de anotaciones.
     if (labels && engine.source === 'rec') {
-      g.font = '600 12px system-ui, sans-serif';
+      g.font = font(12, 600);
       g.textAlign = 'center';
       for (const b of engine.rec.beatsBetween(start / fs, now)) {
         const i = Math.round(b.r * fs);
@@ -152,7 +152,7 @@ export function MonitorView({ engine, options, branch }: { engine: BioEngine; op
     }
 
     if (labels && engine.source === 'ecg') {
-      g.font = '600 11px system-ui, sans-serif';
+      g.font = font(11, 600);
       g.textAlign = 'center';
       g.fillStyle = COLORS.label;
       const t0 = start / fs;
@@ -171,10 +171,10 @@ export function MonitorView({ engine, options, branch }: { engine: BioEngine; op
     }
 
     // Leyendas: escalas abajo a la izquierda, frecuencia arriba a la derecha.
-    g.font = '11px system-ui, sans-serif';
+    g.font = font(11);
     g.fillStyle = COLORS.label;
     g.fillText(`${dec(speed, speed % 1 ? 1 : 0)} mm/s · ${gain} mm/mV`, 8, h - 8);
-    g.font = '600 15px system-ui, sans-serif';
+    g.font = font(15, 600);
     g.fillStyle = color;
     g.textAlign = 'right';
     if (engine.source === 'rec') {
@@ -197,7 +197,7 @@ export function MonitorView({ engine, options, branch }: { engine: BioEngine; op
     // Aviso de saturación del amplificador (en el último medio segundo).
     const amp = engine.chains[branch].amp;
     if (amp.on && amp.saturatedWithin(engine.analogFs / 2)) {
-      g.font = '600 13px system-ui, sans-serif';
+      g.font = font(13, 600);
       g.fillStyle = COLORS.danger;
       g.textAlign = 'left';
       g.fillText('● Amplificador saturado', 10, 22);
@@ -210,7 +210,7 @@ export function MonitorView({ engine, options, branch }: { engine: BioEngine; op
       const v = engine.sampleAt(end - 1, branch);
       const y = yOf(v);
       if (y < 0 || y > h) {
-        g.font = '600 13px system-ui, sans-serif';
+        g.font = font(13, 600);
         g.fillStyle = COLORS.warning;
         g.textAlign = 'center';
         const text = `${y < 0 ? '↑' : '↓'} fuera de escala: ${dec(v, 1)} mV`;
@@ -251,7 +251,7 @@ function drawGrid(g: CanvasRenderingContext2D, w: number, h: number, mid: number
 // Escala de grados de mirada a la derecha, para el EOG.
 function drawDegrees(g: CanvasRenderingContext2D, w: number, h: number, mid: number, pxPerDeg: number) {
   const step = pxPerDeg * 10 >= 24 ? 10 : 20;
-  g.font = '10px system-ui, sans-serif';
+  g.font = font(10);
   g.fillStyle = COLORS.label;
   g.strokeStyle = COLORS.label;
   g.textAlign = 'right';
