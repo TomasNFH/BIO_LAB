@@ -1,4 +1,5 @@
 import { cutoff, DEFAULT_HP, DEFAULT_LP, PRESETS, SHAPES, type FilterKind, type FilterSettings, type Shape } from '../engine/filters';
+import { Help } from './Help';
 import { FilterSchematic } from '../views/FilterSchematic';
 import { dec, Knob } from './Knob';
 import { farads, hz, ohms, seconds } from './units';
@@ -42,6 +43,15 @@ export function FilterPanel({ kind, settings, onChange }: Props) {
           <input type="checkbox" checked={settings.on} onChange={(e) => edit({ on: e.target.checked })} />
           Activado
         </label>
+        <Help label="Ayuda del filtro">
+          <p>{help}</p>
+          {settings.order === 2 && (
+            <p>
+              Respuesta {SHAPES[settings.shape].label}: {SHAPE_HELP[settings.shape]}. R y C son los
+              valores base; el esquema muestra cómo se separa cada par para dar ese Q.
+            </p>
+          )}
+        </Help>
       </div>
 
       <div className="switch-rows">
@@ -105,11 +115,6 @@ export function FilterPanel({ kind, settings, onChange }: Props) {
           <dd>{settings.order * 20} dB/década</dd>
         </div>
       </dl>
-      <p className="muted small">
-        {help}
-        {settings.order === 2 &&
-          ` Respuesta ${SHAPES[settings.shape].label}: ${SHAPE_HELP[settings.shape]}. R y C son los valores base; el esquema muestra cómo se separa cada par para dar ese Q.`}
-      </p>
     </section>
   );
 }

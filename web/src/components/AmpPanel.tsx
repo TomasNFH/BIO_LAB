@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Help } from './Help';
 import { ampGains, DEFAULT_AMP, type AmpSettings, type AmpStats } from '../engine/amp';
 import type { BioEngine } from '../engine/BioEngine';
 import type { Branch } from '../engine/chain';
@@ -39,11 +40,21 @@ export function AmpPanel({ engine, branch, settings, onChange, postGain, onPostG
           Activado
         </label>
         <button onClick={() => onChange(DEFAULT_AMP)}>Restablecer</button>
+        <Help label="Ayuda del amplificador">
+          <p>
+            Resta las tensiones de los dos electrodos y amplifica la diferencia. Apagado, la cadena
+            ve la resta ideal: ganancia 1 y modo común cancelado del todo.
+          </p>
+          <p>
+            La etapa 1 amplifica la diferencia G1 veces pero deja pasar el modo común con ganancia
+            1; la etapa 2 lo resta. Si R3' no es igual a R3, la resta no es perfecta y una parte del
+            modo común pasa a la salida. Por eso subir G1 mejora el CMRR: la señal útil crece y el
+            modo común no. Con offset de electrodos conviene poca ganancia acá y el resto después
+            del pasa altos (ganancia posterior, otro op-amp con la misma alimentación), cuando la
+            continua ya no está.
+          </p>
+        </Help>
       </div>
-      <p className="muted small top">
-        Resta las tensiones de los dos electrodos y amplifica la diferencia. Apagado, la cadena ve
-        la resta ideal: ganancia 1 y modo común cancelado del todo.
-      </p>
 
       <AmpSchematic settings={settings} />
 
@@ -120,14 +131,6 @@ export function AmpPanel({ engine, branch, settings, onChange, postGain, onPostG
           pone después, cuando la continua ya no está.
         </p>
       )}
-      <p className="muted small">
-        La etapa 1 amplifica la diferencia G1 veces pero deja pasar el modo común con ganancia 1;
-        la etapa 2 lo resta. Si R3' no es igual a R3, la resta no es perfecta y una parte del modo
-        común pasa a la salida. Por eso subir G1 mejora el CMRR: la señal útil crece y el modo
-        común no. Con offset de electrodos conviene poca ganancia acá y el resto después del pasa
-        altos (ganancia posterior, otro op-amp con la misma alimentación), cuando la continua ya
-        no está.
-      </p>
     </section>
   );
 }

@@ -13,6 +13,7 @@ import { ChainStrip } from './components/ChainStrip';
 import { FilterPanel } from './components/FilterPanel';
 import { Logo } from './components/Logo';
 import { MetricsTable } from './components/MetricsTable';
+import { Help } from './components/Help';
 import { NoisePanel } from './components/NoisePanel';
 import { NotchPanel } from './components/NotchPanel';
 import { PresetPanel } from './components/PresetPanel';
@@ -43,6 +44,15 @@ const GAINS = [5, 10, 20, 50];
 const STAGE_RANGES = [1, 2, 5, 20];
 
 type ViewTab = 'spectrum' | 'bode' | 'stages' | 'qrs';
+// Explicaciones de cada vista, en el «?» de su panel.
+const HELP: Record<ViewTab | 'monitor', string> = {
+  monitor: 'Cuadrícula de papel ECG: cada cuadro chico es 1 mm y cada grande 5 mm. A 25 mm/s un cuadro grande son 0,2 s; a 10 mm/mV, dos cuadros grandes son 1 mV. Con el EOG, la escala de la derecha está en grados de mirada. La salida está referida a la entrada (dividida por la ganancia); en gris la señal limpia. Espacio pausa el monitor y B cambia de rama. Las métricas comparan cada rama con la señal limpia en los últimos 8 s.',
+  spectrum: 'Amplitud de cada frecuencia en los últimos 8 s, en dB respecto de 1 mV: una senoidal de 1 mV marca 0 dB y una de 0,1 mV, −20 dB. El ECG ocupa de 0,5 a 40 Hz. El ruido solo es la salida menos el ECG limpio: incluye también la deformación y el retardo de los filtros. La salida es la del ADC: por encima de su frecuencia de Nyquist (zona sombreada) no hay información nueva, sólo copias que deja el retenedor, y lo que había allí antes del ADC aparece doblado por debajo.',
+  bode: 'Módulo (arriba) y fase (abajo) de los filtros, calculados desde sus componentes. Los puntos son la respuesta medida sobre la señal: el espectro después de los filtros (antes del ADC) dividido por el de antes de los filtros. Si coinciden con la curva, los filtros hacen lo que dice la teoría. Cada fc está donde la curva cruza −3 dB. Por debajo de 1 Hz los puntos son menos fiables: 8 s de señal tienen pocos ciclos y la deriva fuerte de la respiración se derrama a las frecuencias vecinas.',
+  qrs: 'El detector de Pan y Tompkins (1985) trabaja sobre la salida de la rama, como lo haría el equipo. El pasa banda deja la energía del QRS; la derivada resalta sus pendientes; el cuadrado deja todo positivo y agranda lo grande; la integración en 150 ms deja un lomo por latido. Es QRS lo que pasa el umbral (línea de puntos), que se adapta solo a los picos de señal y de ruido. Nada cuenta en los 200 ms después de un QRS; un pico lento antes de 360 ms es una onda T; y si pasa demasiado sin detectar, vuelve a buscar con la mitad del umbral (triángulo hueco en el monitor). Cada fila tiene su propia escala.',
+  stages: 'La señal en cada punto de la cadena, todas con la misma escala. Se ve qué quita cada bloque: el amplificador, el modo común; el pasa altos, el offset y la deriva; el pasa bajos, el ruido rápido; el notch, la red.',
+};
+
 const VIEW_TABS: { id: ViewTab; label: string }[] = [
   { id: 'spectrum', label: 'Espectro' },
   { id: 'bode', label: 'Bode' },
@@ -163,6 +173,7 @@ export function App() {
               <button className="primary" onClick={() => eng.toggle()}>
                 {state.playing ? 'Pausa' : 'Seguir'}
               </button>
+              <Help label="Ayuda del monitor">{HELP.monitor}</Help>
             </div>
             <MonitorView engine={eng} options={monitor} branch={branch} />
             <div className="row view-options">
@@ -233,14 +244,6 @@ export function App() {
               </label>
             </div>
             <MetricsTable engine={eng} source={source} />
-            <p className="muted small">
-              Cuadrícula de papel ECG: cada cuadro chico es 1 mm y cada grande 5 mm. A 25 mm/s un
-              cuadro grande son 0,2 s; a 10 mm/mV, dos cuadros grandes son 1 mV. Con el EOG, la
-              escala de la derecha está en grados de mirada. La salida está referida a la entrada
-              (dividida por la ganancia); en gris la señal limpia. Espacio pausa el monitor y B
-              cambia de rama. Las métricas comparan cada rama con la señal limpia en los últimos
-              8 s.
-            </p>
           </section>
 
           <section className="panel">
@@ -258,6 +261,7 @@ export function App() {
                   </button>
                 ))}
               </div>
+              <Help label="Ayuda de la vista">{HELP[view]}</Help>
             </div>
             {view === 'spectrum' && (
               <>
@@ -291,15 +295,6 @@ export function App() {
                     label="Ruido solo"
                   />
                 </div>
-                <p className="muted small">
-                  Amplitud de cada frecuencia en los últimos 8 s, en dB respecto de 1 mV: una
-                  senoidal de 1 mV marca 0 dB y una de 0,1 mV, −20 dB. El ECG ocupa de 0,5 a 40 Hz.
-                  El ruido solo es la salida menos el ECG limpio: incluye también la deformación
-                  y el retardo de los filtros. La salida es la del ADC: por encima de su
-                  frecuencia de Nyquist (zona sombreada) no hay información nueva, sólo copias
-                  que deja el retenedor, y lo que había allí antes del ADC aparece doblado por
-                  debajo.
-                </p>
               </>
             )}
             {view === 'bode' && (
@@ -322,29 +317,11 @@ export function App() {
                     <span className="swatch measured" /> Medido
                   </span>
                 </div>
-                <p className="muted small">
-                  Módulo (arriba) y fase (abajo) de los filtros, calculados desde sus componentes.
-                  Los puntos son la respuesta medida sobre la señal: el espectro después de los
-                  filtros (antes del ADC) dividido por el de antes de los filtros. Si coinciden con la curva, los filtros
-                  hacen lo que dice la teoría. Cada fc está donde la curva cruza −3 dB. Por debajo
-                  de 1 Hz los puntos son menos fiables: 8 s de señal tienen pocos ciclos y la deriva
-                  fuerte de la respiración se derrama a las frecuencias vecinas.
-                </p>
               </>
             )}
             {view === 'qrs' && (source === 'ecg' || source === 'rec') && (
               <>
                 <QrsView engine={eng} branch={branch} />
-                <p className="muted small">
-                  El detector de Pan y Tompkins (1985) trabaja sobre la salida de la rama, como
-                  lo haría el equipo. El pasa banda deja la energía del QRS; la derivada resalta
-                  sus pendientes; el cuadrado deja todo positivo y agranda lo grande; la
-                  integración en 150 ms deja un lomo por latido. Es QRS lo que pasa el umbral
-                  (línea de puntos), que se adapta solo a los picos de señal y de ruido. Nada
-                  cuenta en los 200 ms después de un QRS; un pico lento antes de 360 ms es una
-                  onda T; y si pasa demasiado sin detectar, vuelve a buscar con la mitad del
-                  umbral (triángulo hueco en el monitor). Cada fila tiene su propia escala.
-                </p>
               </>
             )}
             {view === 'stages' && (
@@ -365,11 +342,6 @@ export function App() {
                     label="Referencia limpia"
                   />
                 </div>
-                <p className="muted small">
-                  La señal en cada punto de la cadena, todas con la misma escala. Se ve qué quita
-                  cada bloque: el amplificador, el modo común; el pasa altos, el offset y la deriva;
-                  el pasa bajos, el ruido rápido; el notch, la red.
-                </p>
               </>
             )}
           </section>

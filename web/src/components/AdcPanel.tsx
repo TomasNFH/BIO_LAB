@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Help } from './Help';
 import { ADC_RATES, DEFAULT_ADC, lsb, type AdcSettings } from '../engine/adc';
 import { ampGains } from '../engine/amp';
 import { FA, type BioEngine } from '../engine/BioEngine';
@@ -37,11 +38,21 @@ export function AdcPanel({ engine, branch, chain, onChange }: Props) {
           Activado
         </label>
         <button onClick={() => onChange(DEFAULT_ADC)}>Restablecer</button>
+        <Help label="Ayuda del conversor">
+          <p>
+            Muestrea la salida analógica, retiene cada valor hasta la muestra siguiente y lo
+            redondea a uno de 2^bits escalones dentro de su rango. Apagado, la salida es la señal
+            analógica.
+          </p>
+          <p>
+            Lo que haya por encima de Nyquist no desaparece: se dobla y aparece como una frecuencia
+            más baja que no estaba (aliasing), y después ningún filtro digital lo puede separar. Por
+            eso el pasa bajos va antes del ADC y tiene que atenuar bien en fs/2. Los escalones del
+            ADC son fijos en volts: sin ganancia antes, un ECG de 1 mV ocupa muy pocos y se ve
+            escalonado.
+          </p>
+        </Help>
       </div>
-      <p className="muted small top">
-        Muestrea la salida analógica, retiene cada valor hasta la muestra siguiente y lo redondea
-        a uno de 2^bits escalones dentro de su rango. Apagado, la salida es la señal analógica.
-      </p>
 
       <div className="switch-rows">
         <span className="switch-label">Frecuencia de muestreo (Hz)</span>
@@ -94,12 +105,6 @@ export function AdcPanel({ engine, branch, chain, onChange }: Props) {
           <dd className={settings.on && clipped ? 'bad' : ''}>{settings.on && clipped ? 'Sí: la señal se pasa del rango' : 'No'}</dd>
         </div>
       </dl>
-      <p className="muted small">
-        Lo que haya por encima de Nyquist no desaparece: se dobla y aparece como una frecuencia más
-        baja que no estaba (aliasing), y después ningún filtro digital lo puede separar. Por eso el
-        pasa bajos va antes del ADC y tiene que atenuar bien en fs/2. Los escalones del ADC son
-        fijos en volts: sin ganancia antes, un ECG de 1 mV ocupa muy pocos y se ve escalonado.
-      </p>
     </section>
   );
 }

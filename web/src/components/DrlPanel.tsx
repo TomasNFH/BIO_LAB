@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Help } from './Help';
 import type { BioEngine } from '../engine/BioEngine';
 import type { Branch } from '../engine/chain';
 import { DEFAULT_DRL, DRL_RA, drlGain, type DrlSettings } from '../engine/drl';
@@ -37,12 +38,20 @@ export function DrlPanel({ engine, branch, settings, onChange, cm0, swing }: Pro
           Activado
         </label>
         <button onClick={() => onChange(DEFAULT_DRL)}>Restablecer</button>
+        <Help label="Ayuda de la pierna derecha">
+          <p>
+            En vez de conectar la pierna derecha a masa, un op-amp mide el modo común en las
+            entradas, lo invierte y lo devuelve al cuerpo: el lazo empuja todo el cuerpo hacia 0 V.
+            Apagado, la pierna derecha va a masa y el cuerpo queda al modo común de la red.
+          </p>
+          <p>
+            El DRL ayuda de dos formas. Baja lo que el CMRR del amplificador deja pasar, y evita que
+            un modo común de varios volts sature la etapa 1, que lo deja pasar con ganancia 1. En un
+            equipo real Rf lleva un capacitor en paralelo para que el lazo no oscile, y R0 limita la
+            corriente que puede llegar al paciente si algo falla.
+          </p>
+        </Help>
       </div>
-      <p className="muted small top">
-        En vez de conectar la pierna derecha a masa, un op-amp mide el modo común en las entradas,
-        lo invierte y lo devuelve al cuerpo: el lazo empuja todo el cuerpo hacia 0 V. Apagado, la
-        pierna derecha va a masa y el cuerpo queda al modo común de la red.
-      </p>
 
       <svg className="schematic drl" viewBox="0 0 340 130" role="img" aria-label="Esquema del circuito de pierna derecha">
         <text className="sch-label" x={2} y={36}>V+</text>
@@ -96,12 +105,6 @@ export function DrlPanel({ engine, branch, settings, onChange, cm0, swing }: Pro
           alimentación, y sólo resta lo que alcanza.
         </p>
       )}
-      <p className="muted small">
-        El DRL ayuda de dos formas. Baja lo que el CMRR del amplificador deja pasar, y evita que un
-        modo común de varios volts sature la etapa 1, que lo deja pasar con ganancia 1. En un equipo
-        real Rf lleva un capacitor en paralelo para que el lazo no oscile, y R0 limita la corriente
-        que puede llegar al paciente si algo falla.
-      </p>
     </section>
   );
 }

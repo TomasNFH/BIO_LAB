@@ -4,7 +4,8 @@ import { DEFAULT_EMG, EMG_PATTERNS, type EmgPattern, type EmgSettings } from '..
 import { DEFAULT_EOG, PATTERNS, type EogPattern, type EogSettings } from '../engine/eog';
 import type { Recording } from '../engine/recording';
 import { dec, fmt, Knob } from './Knob';
-import { RecordingPanel } from './RecordingPanel';
+import { Help } from './Help';
+import { RECORDING_HELP, RecordingPanel } from './RecordingPanel';
 
 type Props = {
   source: SourceKind;
@@ -27,6 +28,13 @@ const RHYTHM_HELP: Record<Rhythm, string> = {
   pvc: 'Extrasístoles ventriculares (V): algunos latidos nacen en el ventrículo. Llegan antes, no tienen P, el QRS es ancho y la T va al revés; después viene una pausa compensadora. La perilla dice qué fracción de los latidos son extrasístoles.',
   av2: 'Bloqueo AV de segundo grado tipo Wenckebach: las P son regulares, pero el PR se alarga latido a latido hasta que una P no pasa al ventrículo y queda sola. Los QRS se agrupan de a tres; el detector no tiene que contar la P bloqueada.',
   vt: 'Taquicardia ventricular: latidos ventriculares seguidos a unos 170 lpm, anchos y sin P. La frecuencia de la perilla no se usa.',
+};
+
+// Qué es cada fuente, en el «?» del panel.
+const SOURCE_HELP: Record<Exclude<SourceKind, 'rec'>, string> = {
+  ecg: 'Electrocardiograma: cada latido es una suma de cinco gaussianas, la onda P (despolarización de las aurículas), el complejo QRS (de los ventrículos) y la onda T (repolarización). El QRS dura siempre lo mismo; P y T se acercan al R cuando sube la frecuencia, como el intervalo QT (fórmula de Bazett). La variabilidad cambia al azar cada intervalo RR, como en un corazón real. El desnivel ST eleva o deprime el segmento entre el QRS y la T, como en un infarto o una isquemia: es lo que un pasa altos mal elegido deforma.',
+  eog: 'Electrooculograma horizontal: el ojo es un dipolo (la córnea es positiva respecto de la retina), así que la tensión entre un electrodo a cada lado de los ojos es proporcional al ángulo de la mirada. Las sacadas son saltos rápidos (más largos cuanto más grandes) y entre ellas la mirada se queda quieta: eso es una tensión continua. Por eso el EOG se registra con acople en continua o con un pasa altos muy bajo, y un pasa altos de ECG lo arruina: cada fijación se desvanece hacia cero.',
+  emg: 'Electromiograma de superficie: la suma de los potenciales de acción de las unidades motoras (una neurona y las fibras que mueve). Al subir el esfuerzo se suman unidades, de las chicas a las grandes, y cada una dispara más seguido (de 8 a 35 veces por segundo). Queda una señal parecida a ruido, de 20 a 450 Hz, que crece con la fuerza. Necesita lo contrario que el ECG: un pasa altos de unos 20 Hz para sacar el movimiento, un pasa bajos de 450 Hz y un ADC de al menos 1 kHz. El período vale para la rampa y las ráfagas; MUAP máx. es el pico de la unidad más grande.',
 };
 
 const SOURCES: { id: SourceKind; label: string }[] = [
@@ -56,6 +64,16 @@ export function SourcePanel({ source, onSource, ecg, onEcg, eog, onEog, emg, onE
           ))}
         </div>
         {!rec && <button onClick={reset}>Restablecer</button>}
+        <Help label="Ayuda de la fuente">
+          {rec ? (
+            <p>{RECORDING_HELP}</p>
+          ) : (
+            <>
+              <p>{SOURCE_HELP[source]}</p>
+              {source === 'ecg' && <p>{RHYTHM_HELP[ecg.rhythm]}</p>}
+            </>
+          )}
+        </Help>
       </div>
 
       {rec ? (
@@ -81,16 +99,6 @@ export function SourcePanel({ source, onSource, ecg, onEcg, eog, onEog, emg, onE
             )}
             <Knob label="Desnivel ST" value={ecg.st} min={-0.4} max={0.4} step={0.01} defaultValue={DEFAULT_ECG.st} format={(v) => `${v > 0 ? '+' : ''}${dec(v, 2)} mV`} onChange={(st) => editEcg({ st })} />
           </div>
-          <p className="muted small">
-            Electrocardiograma: cada latido es una suma de cinco gaussianas, la onda P
-            (despolarización de las aurículas), el complejo QRS (de los ventrículos) y la onda T
-            (repolarización). El QRS dura siempre lo mismo; P y T se acercan al R cuando sube la
-            frecuencia, como el intervalo QT (fórmula de Bazett). La variabilidad cambia al azar
-            cada intervalo RR, como en un corazón real. El desnivel ST eleva o deprime el segmento
-            entre el QRS y la T, como en un infarto o una isquemia: es lo que un pasa altos mal
-            elegido deforma.
-          </p>
-          <p className="muted small">{RHYTHM_HELP[ecg.rhythm]}</p>
         </>
       ) : source === 'eog' ? (
         <>
@@ -110,14 +118,6 @@ export function SourcePanel({ source, onSource, ecg, onEcg, eog, onEog, emg, onE
             <Knob label="Fijación" value={eog.fixation} min={0.3} max={4} step={0.1} defaultValue={DEFAULT_EOG.fixation} format={(v) => `${dec(v, 1)} s`} onChange={(fixation) => editEog({ fixation })} />
             <Knob label="Parpadeos" value={eog.blinks} min={0} max={30} step={1} defaultValue={DEFAULT_EOG.blinks} format={(v) => `${v}/min`} onChange={(blinks) => editEog({ blinks })} />
           </div>
-          <p className="muted small">
-            Electrooculograma horizontal: el ojo es un dipolo (la córnea es positiva respecto de la
-            retina), así que la tensión entre un electrodo a cada lado de los ojos es proporcional
-            al ángulo de la mirada. Las sacadas son saltos rápidos (más largos cuanto más grandes) y
-            entre ellas la mirada se queda quieta: eso es una tensión continua. Por eso el EOG se
-            registra con acople en continua o con un pasa altos muy bajo, y un pasa altos de ECG lo
-            arruina: cada fijación se desvanece hacia cero.
-          </p>
         </>
       ) : (
         <>
@@ -137,15 +137,6 @@ export function SourcePanel({ source, onSource, ecg, onEcg, eog, onEog, emg, onE
             <Knob label="Unidades" value={emg.units} min={20} max={200} step={10} defaultValue={DEFAULT_EMG.units} format={(v) => `${v}`} onChange={(units) => editEmg({ units })} />
             <Knob label="MUAP máx." value={emg.amplitude} min={0.1} max={2} step={0.05} defaultValue={DEFAULT_EMG.amplitude} format={fmt.mv} onChange={(amplitude) => editEmg({ amplitude })} />
           </div>
-          <p className="muted small">
-            Electromiograma de superficie: la suma de los potenciales de acción de las unidades
-            motoras (una neurona y las fibras que mueve). Al subir el esfuerzo se suman unidades,
-            de las chicas a las grandes, y cada una dispara más seguido (de 8 a 35 veces por
-            segundo). Queda una señal parecida a ruido, de 20 a 450 Hz, que crece con la fuerza.
-            Necesita lo contrario que el ECG: un pasa altos de unos 20 Hz para sacar el movimiento,
-            un pasa bajos de 450 Hz y un ADC de al menos 1 kHz. El período vale para la rampa y las
-            ráfagas; MUAP máx. es el pico de la unidad más grande.
-          </p>
         </>
       )}
     </section>

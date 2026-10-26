@@ -11,6 +11,10 @@ type Props = {
 
 const UNITS = ['mV', 'uV', 'V'];
 
+// Explicación del registro, en el «?» del panel de la fuente.
+export const RECORDING_HELP =
+  'Un registro real en vez de la señal sintética. Sirve un CSV (una columna por canal, con o sin columna de tiempo; por ejemplo la exportación CSV de PhysioNet o la de este laboratorio) o un registro WFDB de PhysioNet: elegir juntos el .hea, el .dat y, si está, el .atr con los latidos anotados por cardiólogos (como los de la base MIT-BIH de arritmias). Con anotaciones, el detector de QRS se mide contra ellas. El registro se repite en bucle; la «señal limpia» de las métricas es el registro tal cual, así que miden lo que agrega o quita la cadena. El archivo se lee en el navegador y no se sube a ningún lado.';
+
 const minutes = (s: number) => (s >= 60 ? `${Math.floor(s / 60)} min ${dec(s % 60, 0)} s` : `${dec(s, 1)} s`);
 
 // Carga de un registro real desde la computadora: nada se sube a ningún
@@ -137,15 +141,6 @@ export function RecordingPanel({ recording, channel, onLoad, onChannel }: Props)
           </div>
         </div>
       )}
-      <p className="muted small">
-        Un registro real en vez de la señal sintética. Sirve un CSV (una columna por canal, con o sin
-        columna de tiempo; por ejemplo la exportación CSV de PhysioNet o la de este laboratorio) o
-        un registro WFDB de PhysioNet: elegir juntos el .hea, el .dat y, si está, el .atr con los
-        latidos anotados por cardiólogos (como los de la base MIT-BIH de arritmias). Con anotaciones,
-        el detector de QRS se mide contra ellas. El registro se repite en bucle; la «señal limpia»
-        de las métricas es el registro tal cual, así que miden lo que agrega o quita la cadena. El
-        archivo se lee en el navegador y no se sube a ningún lado.
-      </p>
     </>
   );
 }

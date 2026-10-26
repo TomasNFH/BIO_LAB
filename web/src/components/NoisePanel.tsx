@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Help } from './Help';
 import { type NoiseId, type NoiseSettings } from '../engine/noise';
 import { dec, Knob } from './Knob';
 
@@ -32,13 +33,17 @@ export function NoisePanel({ settings, defaults, onChange, onFocusNoise }: Props
         onFocus={() => onFocusNoise(id)}
         onBlur={() => onFocusNoise(null)}
       >
-        <label className="check noise-title">
-          <input type="checkbox" checked={on} onChange={(e) => edit(id, { on: e.target.checked })} />
-          {title}
-        </label>
+        <div className="noise-head">
+          <label className="check noise-title">
+            <input type="checkbox" checked={on} onChange={(e) => edit(id, { on: e.target.checked })} />
+            {title}
+          </label>
+          <Help label={`Ayuda: ${title}`}>
+            <p>{help}</p>
+          </Help>
+        </div>
         <div className="noise-band">{band}</div>
         <div className="knobs compact">{controls}</div>
-        <p className="muted small">{help}</p>
       </div>
     );
   };
@@ -58,11 +63,14 @@ export function NoisePanel({ settings, defaults, onChange, onFocusNoise }: Props
           Ruido activado
         </label>
         <button onClick={() => onChange(defaults)}>Restablecer</button>
+        <Help label="Ayuda del ruido">
+          <p>
+            Todo lo que se suma a la señal entre el cuerpo y el equipo. Con el cursor sobre un
+            ruido, su banda se resalta en el espectro; apagando los demás se lo ve solo en el
+            monitor.
+          </p>
+        </Help>
       </div>
-      <p className="muted small top">
-        Todo lo que se suma a la señal entre el cuerpo y el equipo. Con el cursor sobre un ruido, su
-        banda se resalta en el espectro; apagando los demás se lo ve solo en el monitor.
-      </p>
       <div className="noise-grid">
         {card(
           'mains',

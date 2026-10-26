@@ -210,3 +210,32 @@ optgroup { color: var(--muted); }
 .schematic.drl { max-width: 340px; }
 .seg.wrap { flex-wrap: wrap; }
 input.text.short { flex: 0 0 90px; margin: 0 4px; }
+
+/* Ayuda: botón «?» arriba a la derecha de cada panel y su explicación. */
+.help { position: relative; display: inline-flex; flex: none; }
+.panel-head .help:last-child { margin-left: auto; }
+.panel-head h2 + .help { margin-left: 0; }
+.help-btn {
+  width: 26px; height: 26px; padding: 0; border-radius: 50%;
+  font-size: 0.85rem; font-weight: 700; line-height: 1; color: var(--muted);
+  background: transparent; border: 1px solid var(--border);
+}
+.help-btn:hover, .help.open .help-btn { color: var(--text); border-color: #4a4e5a; }
+.help-pop {
+  display: none; position: absolute; top: calc(100% + 6px); right: 0; z-index: 20;
+  width: min(340px, 80vw); padding: 10px 12px; border-radius: 8px;
+  background: #24262d; border: 1px solid var(--border); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+  color: var(--text); font-size: 0.82rem; line-height: 1.45; font-weight: 400;
+  text-transform: none; letter-spacing: normal; text-align: left; white-space: normal;
+}
+.help-pop p { margin: 0; }
+.help-pop p + p { margin-top: 8px; }
+@media (hover: hover) {
+  .help:hover .help-pop { display: block; }
+}
+.help:has(.help-btn:focus-visible) .help-pop, .help.open .help-pop { display: block; }
+
+/* Título de tarjeta o sub-bloque con su «?» a la derecha. */
+.noise-head, .sub-head { display: flex; align-items: center; gap: 8px; }
+.noise-head .help, .sub-head .help { margin-left: auto; }
+.noise-head .help-btn, .sub-head .help-btn { width: 22px; height: 22px; font-size: 0.78rem; }

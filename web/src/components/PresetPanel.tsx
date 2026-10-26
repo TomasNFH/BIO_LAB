@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { Help } from './Help';
 import type { BioEngine } from '../engine/BioEngine';
 import { download, stamp, toCsv, type CsvFormat } from '../export';
 import { BUILTIN_PRESETS, loadUserPresets, normalize, saveUserPresets, type LabSettings, type Preset } from '../lab';
@@ -139,7 +140,12 @@ export function PresetPanel({ engine, current, onApply }: Props) {
       {message && <p className="muted small">{message}</p>}
 
       <div className="fx-block">
-        <span className="sub-title">Exportar señales (CSV)</span>
+        <div className="sub-head">
+          <span className="sub-title">Exportar señales (CSV)</span>
+          <Help label="Ayuda de la exportación">
+            <p>Una fila por milisegundo con la señal limpia, la entrada y, para cada rama, la salida del amplificador, de cada filtro y del ADC, todas en mV referidos a la entrada. La señal limpia sirve de referencia para medir por tu cuenta qué hizo cada bloque.</p>
+          </Help>
+        </div>
         <div className="switch-rows">
           <div className="seg">
             {SECONDS.map((s) => (
@@ -158,11 +164,6 @@ export function PresetPanel({ engine, current, onApply }: Props) {
           </div>
           <button onClick={exportCsv}>Descargar CSV</button>
         </div>
-        <p className="muted small">
-          Una fila por milisegundo con la señal limpia, la entrada y, para cada rama, la salida del
-          amplificador, de cada filtro y del ADC, todas en mV referidos a la entrada. La señal limpia
-          sirve de referencia para medir por tu cuenta qué hizo cada bloque.
-        </p>
       </div>
     </section>
   );

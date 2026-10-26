@@ -1,4 +1,5 @@
 import { BRANCHES, type Branch, type ChainSettings } from '../engine/chain';
+import { Help } from './Help';
 import { cutoff, PRESETS } from '../engine/filters';
 import { EMG_HP, EMG_LP } from '../lab';
 import { hz } from './units';
@@ -40,6 +41,15 @@ export function BranchBar({ branch, onBranch, chains, onChange }: Props) {
         <button onClick={() => onChange(other, structuredClone(s))}>
           Copiar {branch.toUpperCase()} → {other.toUpperCase()}
         </button>
+        <Help label="Ayuda de la cadena">
+          <p>
+            La misma señal (con su ruido) entra a dos cadenas completas, A y B. Los paneles de abajo
+            editan la rama elegida y las vistas la muestran; la tecla B cambia de rama. Un pasa
+            banda es un pasa altos y un pasa bajos en cascada: en el ECG la banda de monitoreo
+            limpia más y la de diagnóstico deforma menos; el EOG necesita llegar hasta la continua
+            (CC) y el EMG, hasta 450 Hz (con el ADC a 1 kHz).
+          </p>
+        </Help>
       </div>
       <div className="row">
         <span className="switch-label">Pasa banda</span>
@@ -65,13 +75,6 @@ export function BranchBar({ branch, onBranch, chains, onChange }: Props) {
           })}
         </div>
       </div>
-      <p className="muted small">
-        La misma señal (con su ruido) entra a dos cadenas completas, A y B. Los paneles de abajo
-        editan la rama elegida y las vistas la muestran; la tecla B cambia de rama. Un pasa banda
-        es un pasa altos y un pasa bajos en cascada: en el ECG la banda de monitoreo limpia más
-        y la de diagnóstico deforma menos; el EOG necesita llegar hasta la continua (CC) y el
-        EMG, hasta 450 Hz (con el ADC a 1 kHz).
-      </p>
     </section>
   );
 }

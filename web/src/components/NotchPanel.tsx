@@ -1,4 +1,5 @@
 import { DEFAULT_NOTCH, type NotchSettings } from '../engine/filters';
+import { Help } from './Help';
 import { NotchSchematic } from '../views/FilterSchematic';
 import { dec, Knob } from './Knob';
 
@@ -21,6 +22,14 @@ export function NotchPanel({ settings, onChange }: Props) {
           <input type="checkbox" checked={settings.on} onChange={(e) => edit({ on: e.target.checked })} />
           Activado
         </label>
+        <Help label="Ayuda del notch">
+          <p>
+            Cancela una sola frecuencia: la de la red. Tiene que coincidir con la red del lugar (50
+            o 60 Hz). Con Q alto la muesca es angosta y casi no toca el ECG, pero el filtro tarda en
+            asentarse y deja una oscilación (ringing) después de cada cambio brusco, como el QRS.
+            Con Q bajo se asienta rápido pero se come más banda alrededor de f0.
+          </p>
+        </Help>
       </div>
 
       <NotchSchematic settings={settings} />
@@ -49,12 +58,6 @@ export function NotchPanel({ settings, onChange }: Props) {
           <dd>{dec((1000 * settings.q) / (Math.PI * settings.f0), 0)} ms</dd>
         </div>
       </dl>
-      <p className="muted small">
-        Cancela una sola frecuencia: la de la red. Tiene que coincidir con la red del lugar (50 o 60
-        Hz). Con Q alto la muesca es angosta y casi no toca el ECG, pero el filtro tarda en
-        asentarse y deja una oscilación (ringing) después de cada cambio brusco, como el QRS. Con Q
-        bajo se asienta rápido pero se come más banda alrededor de f0.
-      </p>
     </section>
   );
 }
