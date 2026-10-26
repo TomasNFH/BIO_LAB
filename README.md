@@ -19,8 +19,15 @@ Ver [el plan de implementación](PLAN.md) para el detalle y las etapas.
 
 ```
 Fuente (ECG / EOG) → + Ruido ajustable → Amplificador de instrumentación
-  → Pasa altos → Pasa bajos → Notch 50/60 Hz → (Pasa banda) → ADC → Monitor
+  → Pasa altos → Pasa bajos → Notch 50/60 Hz → (Pasa banda) → ADC
+  → Pasa bajos digital → Umbral → Salida (monitor, contador de pulso, autito)
 ```
+
+Después del ADC viene una **etapa digital**, lo que haría un
+microcontrolador con las muestras: un pasa bajos digital y un umbral. Al
+final, la **salida** es el dispositivo que usa la señal: la pantalla del
+monitor, un contador de pulso que cuenta las ondas R, o un autito que avanza
+cuando se mira a la derecha y retrocede cuando se mira a la izquierda.
 
 Cada bloque se puede activar, desactivar y configurar por separado, y las
 vistas siempre comparan contra la **señal limpia de referencia**, que el
@@ -39,6 +46,8 @@ cuánto ruido se quitó y cuánto se deformó la señal.
 | Pasa banda | ¿Qué banda conviene para monitoreo y cuál para diagnóstico? |
 | Notch | ¿Cómo se quita la interferencia de red y qué cuesta hacerlo? |
 | ADC | ¿Qué pasa con la frecuencia de muestreo, la resolución y el aliasing? |
+| Etapa digital (pasa bajos digital y umbral) | ¿Qué se puede hacer con cuentas sobre las muestras del ADC? ¿Cómo se cuentan latidos con un umbral, y por qué hacen falta el período refractario y la histéresis? |
+| Salida | ¿Para qué se usa la señal al final? Un monitor, un contador de pulso o un autito que se maneja con la mirada (EOG) |
 
 ## Comparación A/B
 
@@ -48,7 +57,7 @@ se puede poner, por ejemplo, un pasa altos de 0,05 Hz en una rama y uno de
 
 ## Estado
 
-Las diez etapas del plan (0 a 9) están hechas: esqueleto, tres fuentes
+Las once etapas del plan (0 a 10) están hechas: esqueleto, tres fuentes
 sintéticas (ECG con frecuencia, variabilidad, amplitud, desnivel ST y cinco
 ritmos: sinusal, fibrilación auricular, extrasístoles ventriculares, bloqueo
 AV de Wenckebach y taquicardia ventricular; registros reales en CSV o WFDB
@@ -64,13 +73,17 @@ altos y pasa bajos de primer orden (RC) o segundo orden (Sallen-Key), bandas
 típicas de ECG, EOG y EMG, notch doble T y conversor A/D. Dos ramas A/B con
 la misma entrada y métricas de cada una contra la señal limpia. Vistas:
 espectro con la frecuencia de Nyquist, Bode calculado y medido, y señal en
-cada etapa. Catorce experimentos listos (las preguntas del plan, la pierna
-derecha, una arritmia, el EOG y el EMG), ajustes guardados en el navegador,
+cada etapa. Dieciséis experimentos listos (las preguntas del plan, la pierna
+derecha, una arritmia, el EOG, el EMG, el contador de pulso y el autito),
+ajustes guardados en el navegador,
 intercambio de ajustes en JSON y exportación de todas las señales en CSV.
 Detector de QRS de Pan-Tompkins en cada rama, con sus etapas a la vista y su
 sensibilidad, VPP y frecuencia medida contra los latidos reales. El detector
 también se mide contra las anotaciones de los cardiólogos cuando un registro
-real las trae. Ver [PLAN.md](PLAN.md).
+real las trae. Etapa digital después del ADC (pasa bajos digital y umbral
+de uno o dos niveles, a la frecuencia del ADC) y salida como dispositivo:
+monitor, contador de pulso o autito manejado con el EOG. Ver
+[PLAN.md](PLAN.md).
 
 ## Cómo correrlo
 
@@ -114,8 +127,11 @@ git tag v0.1.0 && git push origin v0.1.0
 | Filtros básicos y FFT | `web/src/engine/dsp.ts` |
 | Pierna derecha (DRL) | `web/src/engine/drl.ts`, `web/src/components/DrlPanel.tsx` |
 | Amplificador de instrumentación de tres op-amps | `web/src/engine/amp.ts`, `web/src/components/AmpPanel.tsx`, `web/src/views/AmpSchematic.tsx` |
-| Cadena de una rama (amplificador, filtros, notch, ADC) y ramas A/B | `web/src/engine/chain.ts` |
+| Cadena de una rama (amplificador, filtros, notch, ADC, etapa digital) y ramas A/B | `web/src/engine/chain.ts` |
 | Conversor A/D | `web/src/engine/adc.ts`, `web/src/components/AdcPanel.tsx` |
+| Etapa digital: pasa bajos digital y umbral | `web/src/engine/digital.ts`, `web/src/components/DigitalPanel.tsx` |
+| Salida: monitor, contador de pulso y autito | `web/src/output.ts`, `web/src/components/OutputPanel.tsx` |
+| Bandas típicas (pasa altos y pasa bajos juntos) | `web/src/components/bands.ts` |
 | Filtros pasa altos, pasa bajos y notch | `web/src/engine/filters.ts`, `web/src/components/FilterPanel.tsx`, `web/src/components/NotchPanel.tsx`, `web/src/views/FilterSchematic.tsx` |
 | Métricas contra la señal limpia | `web/src/engine/metrics.ts`, `web/src/components/MetricsTable.tsx` |
 | Experimentos, ajustes guardados y JSON | `web/src/lab.ts`, `web/src/components/PresetPanel.tsx` |

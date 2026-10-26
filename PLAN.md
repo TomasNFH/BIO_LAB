@@ -43,8 +43,8 @@ El objetivo es aprender, no hacer un equipo clínico.
 ```
            ┌──────────── referencia limpia ─────────────────────────┐
            │                                                         ▼
-Fuente ──► Ruido ──► Amp. instrumentación ──► PA ──► PB ──► Notch ──► ADC ──► Vistas
-(ECG/EOG)  (ajustable) (diferencial + modo común)                       (A y B)
+Fuente ──► Ruido ──► Amp. instrumentación ──► PA ──► PB ──► Notch ──► ADC ──► PB digital ──► Umbral ──► Salida
+(ECG/EOG)  (ajustable) (diferencial + modo común)                       (A y B)                        (monitor, contador, autito)
 ```
 
 La fuente entrega dos señales, una por electrodo (`V+` y `V−`), para que el
@@ -142,6 +142,31 @@ la respuesta elegida, sin mover fc.
 - Aliasing visible: con el pasa bajos apagado y fs baja, el ruido de alta
   frecuencia se "dobla" dentro de la banda.
 
+## Procesamiento digital y salidas
+
+Después del ADC, cada rama tiene una etapa digital: lo que haría un
+microcontrolador con las muestras. Corre sólo cuando el ADC convierte una
+muestra nueva, a su frecuencia de muestreo, y trabaja con el valor ya
+cuantizado. Sin ADC no hay muestras y la etapa no hace nada.
+
+- **Pasa bajos digital** de primer orden: y = y + a·(x − y), con
+  a = 1 − e^(−2π·fc/fs). Suaviza la señal antes del umbral; no puede sacar
+  lo que ya se dobló por aliasing.
+- **Umbral** de un nivel: un pulso por cada cruce, con período refractario
+  e histéresis. Con el ECG da un pulso por onda R y sirve para contar
+  latidos y medir las lpm.
+- **Umbral** de dos niveles (izquierda y derecha): la salida vale −1, 0 o
+  +1. Con el EOG dice hacia dónde se mira.
+
+La **salida** es común a las dos ramas y usa la rama que se ve en el
+monitor. Es el dispositivo que usa la señal:
+
+- **Monitor:** la pantalla, como hasta ahora.
+- **Contador de pulso:** display de tres cifras, una luz por latido y las
+  lpm medidas contra las reales.
+- **Autito:** una pista; mirar a la derecha lo lleva hacia adelante, mirar
+  a la izquierda hacia atrás y con la mirada al centro se queda quieto.
+
 ## Vistas
 
 | Vista | Pregunta | Cómo |
@@ -225,6 +250,15 @@ actual.
      anotaciones, el monitor muestra los símbolos de cada latido y el
      detector de QRS se mide contra ellas.
 
+10. **Procesamiento digital y salidas.** Pasa bajos digital y umbral
+    después del ADC, a la fs del ADC; salida como dispositivo (monitor,
+    contador de pulso, autito). Experimentos: contador de pulso con un
+    umbral bien puesto contra uno que también cuenta la onda T, y autito
+    con la banda del EOG contra el pasa altos del ECG.
+    - Listo cuando: el contador marca las mismas lpm que el ECG y el autito
+      sigue a la mirada con la banda del EOG pero no con el pasa altos de
+      0,48 Hz.
+
 Las etapas 1 a 4 son la base; la mayor parte del aprendizaje está en la 3,
 la 4 y la 5.
 
@@ -243,3 +277,7 @@ la 4 y la 5.
       cambia en el espectro y en la forma?
 - [ ] ADC a 100 Hz sin pasa bajos y con EMG. ¿Dónde aparece el aliasing?
 - [ ] Usar el pasa banda del ECG con el EOG. ¿Qué se pierde y por qué?
+- [ ] Contar latidos con un umbral: bajar el nivel a 0,2 mV y el refractario
+      a 100 ms. ¿Por qué cuenta casi el doble?
+- [ ] Manejar el autito con la mirada con el pasa altos del ECG. ¿Por qué se
+      frena aunque el ojo siga mirando al costado?

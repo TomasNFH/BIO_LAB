@@ -306,6 +306,39 @@ export const BUILTIN_PRESETS: Preset[] = [
         c.adc = { ...c.adc, fs: 1000 };
       },
     }),
+  },  {
+    name: 'Contador de pulso: umbral sobre la onda R',
+    description: 'Después del ADC (250 Hz), un umbral cuenta un pulso por latido y la salida es un contador. A con el nivel en 0,5 mV y 200 ms de refractario: cuenta lo mismo que la frecuencia real. B con el nivel en 0,2 mV y 100 ms: la onda T también cruza y cuenta casi el doble. Mirar el contador en «Salida» (cambiar de rama con A | B) y las rayitas arriba del monitor.',
+    settings: lab({
+      output: 'counter',
+      a: (c) => {
+        c.adc = { ...c.adc, fs: 250 };
+        c.dsp.thr = { ...c.dsp.thr, on: true, mode: 'one', level: 0.5, refractory: 0.2 };
+      },
+      b: (c) => {
+        c.adc = { ...c.adc, fs: 250 };
+        c.dsp.thr = { ...c.dsp.thr, on: true, mode: 'one', level: 0.2, refractory: 0.1 };
+      },
+    }),
+  },
+  {
+    name: 'Autito con la mirada (EOG)',
+    description: 'El EOG pasa por un pasa bajos digital de 5 Hz y dos umbrales (unos ±10°): mirar a la derecha lleva el autito hacia adelante y a la izquierda hacia atrás. A con la banda del EOG (sin pasa altos): el autito sigue a la mirada. B con el pasa altos del ECG (0,48 Hz): cada mirada se desvanece en un segundo y el autito se frena aunque el ojo siga mirando al costado. Mirar la Salida y el escalón arriba del monitor.',
+    settings: lab({
+      source: 'eog',
+      output: 'car',
+      a: (c) => {
+        c.hp = { ...DEFAULT_HP, on: false };
+        c.lp = { ...DEFAULT_LP, order: 2, c: 530e-9 };
+        c.dsp.lp = { on: true, fc: 5 };
+        c.dsp.thr = { ...c.dsp.thr, on: true, mode: 'two', low: -0.16, high: 0.16 };
+      },
+      b: (c) => {
+        c.lp = { ...DEFAULT_LP, order: 2, c: 530e-9 };
+        c.dsp.lp = { on: true, fc: 5 };
+        c.dsp.thr = { ...c.dsp.thr, on: true, mode: 'two', low: -0.16, high: 0.16 };
+      },
+    }),
   },
 ];
 
