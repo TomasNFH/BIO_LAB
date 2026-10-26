@@ -346,7 +346,7 @@ input.text.short { flex: 0 0 90px; margin: 0 4px; }
 .branch-b .chain-power.is-on { color: var(--branch-b); }
 .ch-arrow { display: flex; justify-content: center; color: var(--muted); margin: 2px 0; }
 /* Entrada: fuente y ruido encerrados juntos, porque las ramas reciben su suma. */
-.ch-input { border: 1.5px dashed var(--muted); border-radius: 12px; padding: 7px; }
+.ch-frame { border: 1.5px dashed var(--muted); border-radius: 12px; padding: 7px; }
 .ch-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; }
 .ch-branch {
   text-align: center; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
@@ -356,9 +356,20 @@ input.text.short { flex: 0 0 90px; margin: 0 4px; }
 .ch-branch.live { border-color: var(--espresso); }
 .ch-branch.live.a { background: var(--accent-fill); color: var(--text); }
 .ch-branch.live.b { background: var(--branch-b-fill); color: var(--text); }
-.ch-actions { margin-top: 10px; display: flex; gap: 8px; align-items: center; }
-.ch-actions select { flex: 1; min-width: 0; }
-.ch-actions button { flex: none; padding: 5px 10px; font-size: 0.82rem; }
+/* Copiar ajustes: una pastilla entre «Rama A» y «Rama B». */
+.ch-branches { position: relative; }
+.ch-copy {
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%); z-index: 1;
+  display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px;
+  font-size: 0.7rem; font-weight: 700; border-radius: 999px; white-space: nowrap;
+  background: var(--cream-light); border: 1px solid var(--espresso); box-shadow: var(--shadow-hard-sm);
+}
+.ch-copy:hover:not(:disabled) { background: var(--panel-sunk); border-color: var(--espresso); }
+.ch-copy:active { transform: translate(calc(-50% + 2px), 2px); box-shadow: none; }
+
+/* Salida común: el detalle (banda y rango) puede ser largo. */
+.ch-out .ch-detail { white-space: normal; }
+.out-bands { margin: 6px 0 2px; }
 .ch-presets { padding: 4px 10px; font-size: 0.8rem; }
 .ch-presets.on { background: var(--espresso); border-color: var(--espresso); color: var(--cream-light); }
 

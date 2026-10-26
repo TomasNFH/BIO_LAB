@@ -15,6 +15,7 @@ import { MetricsTable } from './components/MetricsTable';
 import { Help, Popover } from './components/Help';
 import { NoisePanel } from './components/NoisePanel';
 import { NotchPanel } from './components/NotchPanel';
+import { OutputPanel } from './components/OutputPanel';
 import { PresetPanel } from './components/PresetPanel';
 import { SourcePanel } from './components/SourcePanel';
 import type { LabSettings } from './lab';
@@ -445,6 +446,8 @@ export function App() {
             {block === 'lp' && <FilterPanel kind="lp" settings={chain.lp} onChange={(lp) => editChain({ lp })} />}
 
             {block === 'notch' && <NotchPanel settings={chain.notch} onChange={(notch) => editChain({ notch })} />}
+
+            {selection === 'output' && <OutputPanel chains={chains} onChain={setChain} />}
 
             {block === 'adc' && (
               <AdcPanel engine={eng} branch={branch} chain={chain} onChange={(adc) => editChain({ adc })} />

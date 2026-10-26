@@ -6,18 +6,18 @@ import { drlGain } from '../engine/drl';
 import { RHYTHMS, type EcgSettings } from '../engine/ecg';
 import { EMG_PATTERNS, type EmgSettings } from '../engine/emg';
 import { PATTERNS, type EogSettings } from '../engine/eog';
-import { cutoff, PRESETS, type FilterSettings } from '../engine/filters';
+import { cutoff, type FilterSettings } from '../engine/filters';
 import type { NoiseId, NoiseSettings } from '../engine/noise';
 import type { Recording } from '../engine/recording';
-import { EMG_HP, EMG_LP } from '../lab';
 import { Help } from './Help';
+import { outputName, outputRange } from './OutputPanel';
 import { dec } from './Knob';
 import { hz } from './units';
 
 // Bloques de cada rama, en el orden de la señal.
 export type BlockId = 'amp' | 'drl' | 'hp' | 'lp' | 'notch' | 'adc';
 // Lo que se abre debajo de la cadena: un bloque común o el de una rama.
-export type Selection = 'presets' | 'source' | 'noise' | { branch: Branch; block: BlockId };
+export type Selection = 'presets' | 'source' | 'noise' | 'output' | { branch: Branch; block: BlockId };
 
 const BLOCKS: { id: BlockId; label: string }[] = [
   { id: 'amp', label: 'Amplificador' },
@@ -26,17 +26,6 @@ const BLOCKS: { id: BlockId; label: string }[] = [
   { id: 'lp', label: 'Pasa bajos' },
   { id: 'notch', label: 'Notch' },
   { id: 'adc', label: 'ADC' },
-];
-
-// Pasa banda = pasa altos y pasa bajos en cascada. Cada botón fija los dos
-// filtros de la rama a la vez, sin tocar su orden. El EOG necesita la
-// continua: sin pasa altos y con un pasa bajos de 30 Hz. El EMG va de 20 a
-// 450 Hz.
-const BANDS = [
-  { label: 'ECG monitoreo', hp: PRESETS.hp[1], lp: PRESETS.lp[0] },
-  { label: 'ECG diagnóstico', hp: PRESETS.hp[0], lp: PRESETS.lp[1] },
-  { label: 'EOG', hp: null, lp: { r: 10e3, c: 530e-9 } },
-  { label: 'EMG', hp: EMG_HP, lp: EMG_LP },
 ];
 
 const filterText = (f: FilterSettings) => `${hz(cutoff(f))} · ${f.order === 1 ? 'RC' : 'Sallen-Key'}`;
@@ -137,14 +126,7 @@ export function ChainView(props: Props) {
           : `Registro · ${recording ? recording.name : 'sin cargar'}`;
   const activeNoises = NOISE_IDS.filter((id) => noise[id].on).length;
 
-  const s = chains[branch];
   const other: Branch = branch === 'a' ? 'b' : 'a';
-  // La banda típica que coincide con los filtros de la rama, si alguna.
-  const currentBand = BANDS.findIndex((band) => {
-    const hpOk = band.hp ? s.hp.on && s.hp.r === band.hp.r && s.hp.c === band.hp.c : !s.hp.on;
-    return hpOk && s.lp.on && s.lp.r === band.lp.r && s.lp.c === band.lp.c;
-  });
-
   return (
     <section className="panel chain-view" aria-label="Cadena de adquisición">
       <div className="panel-head">
@@ -160,15 +142,14 @@ export function ChainView(props: Props) {
             El botón de cada bloque lo prende o lo apaga.
           </p>
           <p>
-            Un pasa banda es un pasa altos y un pasa bajos en cascada: en el ECG la banda de
-            monitoreo limpia más y la de diagnóstico deforma menos; el EOG necesita llegar hasta la
-            continua (CC) y el EMG, hasta 450 Hz (con el ADC a 1 kHz).
+            La salida es común a las dos ramas: al tocarla se elige el pasa banda de A y B.
           </p>
         </Help>
       </div>
 
       {/* La entrada de las dos ramas es la suma de la fuente y el ruido. */}
-      <div className="ch-input" role="group" aria-label="Entrada: fuente más ruido">        <div className="ch-grid">
+      <div className="ch-frame" role="group" aria-label="Entrada: fuente más ruido">
+        <div className="ch-grid">
           <Cell label="Fuente" detail={sourceDetail} on selected={selection === 'source'} onOpen={() => onSelect('source')} />
           <Cell
             label="+ Ruido"
@@ -182,12 +163,25 @@ export function ChainView(props: Props) {
       </div>
       <Arrow />
 
-      <div className="ch-grid">
+      <div className="ch-grid ch-branches">
         {BRANCHES.map((b) => (
           <span key={b} className={`ch-branch ${b} ${branch === b ? 'live' : ''}`}>
             Rama {b.toUpperCase()}
           </span>
         ))}
+        {/* Entre los dos títulos: copia los ajustes de la rama que se ve a la otra. */}
+        <button
+          className="ch-copy"
+          onClick={() => onChain(other, structuredClone(chains[branch]))}
+          aria-label={`Copiar los ajustes de la rama ${branch.toUpperCase()} a la ${other.toUpperCase()}`}
+          title={`Copiar los ajustes de la rama ${branch.toUpperCase()} a la ${other.toUpperCase()}`}
+        >
+          <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
+            <rect x="5.5" y="5.5" width="8" height="8" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M10.5 3.5V3a1.5 1.5 0 0 0-1.5-1.5H3A1.5 1.5 0 0 0 1.5 3v6A1.5 1.5 0 0 0 3 10.5h.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+          </svg>
+          {branch === 'a' ? 'A → B' : 'A ← B'}
+        </button>
         {BLOCKS.map((blk) =>
           BRANCHES.map((b) => {
             const d = describe(chains[b], blk.id);
@@ -213,31 +207,21 @@ export function ChainView(props: Props) {
         )}
       </div>
 
-      <div className="ch-actions">
-        <select
-          className="compact"
-          aria-label={`Pasa banda de la rama ${branch.toUpperCase()}`}
-          value={currentBand}
-          onChange={(e) => {
-            const band = BANDS[Number(e.target.value)];
-            if (!band) return;
-            onChain(branch, {
-              ...s,
-              hp: band.hp ? { ...s.hp, on: true, r: band.hp.r, c: band.hp.c } : { ...s.hp, on: false },
-              lp: { ...s.lp, on: true, r: band.lp.r, c: band.lp.c },
-            });
-          }}
-        >
-          <option value="-1">Pasa banda en {branch.toUpperCase()}…</option>
-          {BANDS.map((band, i) => (
-            <option key={band.label} value={i}>
-              {band.label} ({band.hp ? hz(cutoff(band.hp)) : 'CC'} – {hz(cutoff(band.lp))})
-            </option>
-          ))}
-        </select>
-        <button onClick={() => onChain(other, structuredClone(s))}>
-          Copiar {branch.toUpperCase()} → {other.toUpperCase()}
-        </button>
+      {/* La salida, común a las dos ramas: termina la cadena; al tocarla se abre
+          su panel con el pasa banda. */}
+      <div className="ch-grid">
+        <Arrow />
+        <Arrow />
+      </div>
+      <div className="ch-frame" role="group" aria-label="Salida de las dos ramas">
+        <Cell
+          className="ch-out"
+          label="Salida"
+          detail={`${outputName(chains)} · ${outputRange(chains)}`}
+          on
+          selected={selection === 'output'}
+          onOpen={() => onSelect('output')}
+        />
       </div>
     </section>
   );
