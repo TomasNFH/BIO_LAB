@@ -40,7 +40,8 @@ export function StagesView({ engine, options, branch }: { engine: BioEngine; opt
       const label = dsp.thr.mode === 'one' ? 'Umbral (salida lógica: 0 o 1)' : 'Umbral (izquierda −1 · centro 0 · derecha +1)';
       rows.push({ point: 'thr', label, logic: true });
     }
-    const rowH = h / rows.length;
+    // Abajo queda lugar para la leyenda de la escala.
+    const rowH = (h - 14) / rows.length;
     const xOf = (i: number) => ((i - (end - SECONDS * fs)) / (SECONDS * fs)) * w;
 
     rows.forEach(({ point, label, logic }, r) => {
