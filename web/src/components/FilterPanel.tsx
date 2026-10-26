@@ -1,4 +1,6 @@
 import { cutoff, DEFAULT_HP, DEFAULT_LP, PRESETS, SHAPES, type FilterKind, type FilterSettings, type Shape } from '../engine/filters';
+import { BANDS, rangeText } from './bands';
+import type { ChainSettings } from '../engine/chain';
 import { Help } from './Help';
 import { FilterSchematic } from '../views/FilterSchematic';
 import { dec, Knob } from './Knob';
@@ -25,11 +27,14 @@ type Props = {
   kind: FilterKind;
   settings: FilterSettings;
   onChange: (s: FilterSettings) => void;
+  chain: ChainSettings; // para mostrar la banda de la rama
+  band: number; // banda típica de la rama, o -1
+  onBand: (i: number) => void; // fija el pasa altos y el pasa bajos juntos
 };
 
 // Panel de un filtro: interruptor, orden, R y C, valores típicos y lo que
 // sale de ellos.
-export function FilterPanel({ kind, settings, onChange }: Props) {
+export function FilterPanel({ kind, settings, onChange, chain, band, onBand }: Props) {
   const edit = (patch: Partial<FilterSettings>) => onChange({ ...settings, ...patch });
   const fallback = kind === 'hp' ? DEFAULT_HP : DEFAULT_LP;
   const fc = cutoff(settings);
@@ -115,6 +120,19 @@ export function FilterPanel({ kind, settings, onChange }: Props) {
           <dd>{settings.order * 20} dB/década</dd>
         </div>
       </dl>
+
+      {/* Pasa banda: pasa altos y pasa bajos de la rama, de una vez. */}
+      <div className="fx-block">
+        <span className="switch-label">Banda típica (fija el pasa altos y el pasa bajos de la rama)</span>
+        <div className="seg wrap">
+          {BANDS.map((b, i) => (
+            <button key={b.label} className={band === i ? 'on' : ''} aria-pressed={band === i} onClick={() => onBand(i)}>
+              {b.label}
+            </button>
+          ))}
+        </div>
+        <span className="muted-inline">La rama deja pasar de {rangeText(chain).replace(' – ', ' a ')}.</span>
+      </div>
     </section>
   );
 }

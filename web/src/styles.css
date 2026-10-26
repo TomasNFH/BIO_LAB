@@ -374,9 +374,33 @@ input.text.short { flex: 0 0 90px; margin: 0 4px; }
 .ch-copy:hover:not(:disabled) { background: var(--panel-sunk); border-color: var(--espresso); }
 .ch-copy:active { transform: translate(calc(-50% + 2px), 2px); box-shadow: none; }
 
-/* Salida común: el detalle (banda y rango) puede ser largo. */
-.ch-out .ch-detail { white-space: normal; }
-.out-bands { margin: 6px 0 2px; }
+/* Salida: dispositivos. */
+.out-devices { margin-bottom: 10px; }
+.out-needs { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.out-needs .sat-warning { margin: 0; }
+/* Contador: display espresso con cifras turquesa y una luz por latido. */
+.out-counter {
+  display: flex; align-items: center; justify-content: center; gap: 14px;
+  padding: 14px 18px; border-radius: 12px; background: var(--espresso-dark);
+  border: 2px solid var(--espresso); box-shadow: var(--shadow-hard);
+}
+.out-digits { font-family: var(--font-display); font-weight: 700; font-size: 3rem; line-height: 1; letter-spacing: 0.08em; color: var(--turq); font-variant-numeric: tabular-nums; }
+.out-unit { color: rgba(248, 245, 236, 0.6); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; }
+.out-led { width: 16px; height: 16px; border-radius: 50%; background: #5a2a22; border: 2px solid var(--espresso); transition: background 0.05s; }
+.out-led.on { background: var(--terra); box-shadow: 0 0 10px var(--terra); }
+/* Autito: pista con marcas cada 10 %. */
+.out-track {
+  position: relative; height: 74px; margin: 4px 0 2px; border-radius: 12px;
+  border: 2px solid var(--espresso); box-shadow: var(--shadow-hard);
+  background:
+    repeating-linear-gradient(90deg, transparent 0 calc(10% - 1px), var(--border) calc(10% - 1px) 10%),
+    linear-gradient(transparent 62%, var(--panel-sunk) 62%);
+}
+.out-track::after { content: ''; position: absolute; left: 12px; right: 12px; top: 62%; border-top: 2px dashed var(--border-strong); }
+.out-track-end { position: absolute; top: 6px; font-size: 0.68rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.out-track-end.left { left: 10px; }
+.out-track-end.right { right: 10px; }
+.out-car { position: absolute; bottom: 18px; transform: translateX(-50%); z-index: 1; }
 .ch-presets { padding: 4px 10px; font-size: 0.8rem; }
 .ch-presets.on { background: var(--espresso); border-color: var(--espresso); color: var(--cream-light); }
 

@@ -10,7 +10,7 @@ import { cutoff, type FilterSettings } from '../engine/filters';
 import type { NoiseId, NoiseSettings } from '../engine/noise';
 import type { Recording } from '../engine/recording';
 import { Help } from './Help';
-import { outputName, outputRange } from './OutputPanel';
+import { DEVICES, type OutputSettings } from '../output';
 import { dec } from './Knob';
 import { hz } from './units';
 
@@ -94,6 +94,7 @@ type Props = {
   recording: Recording | null;
   noise: NoiseSettings;
   onNoise: (n: NoiseSettings) => void;
+  output: OutputSettings;
 };
 
 const Power = ({ on, label, onClick }: { on: boolean; label: string; onClick: () => void }) => (
@@ -138,7 +139,7 @@ const Arrow = () => (
 // comunes; después la señal se divide en dos cadenas completas, A y B. Al
 // tocar un bloque se abre su panel debajo, uno por vez.
 export function ChainView(props: Props) {
-  const { selection, onSelect, branch, chains, onChain, source, ecg, eog, emg, recording, noise, onNoise } = props;
+  const { selection, onSelect, branch, chains, onChain, source, ecg, eog, emg, recording, noise, onNoise, output } = props;
   const isSel = (b: Branch, block: BlockId) => typeof selection === 'object' && selection.branch === b && selection.block === block;
   const toggle = (b: Branch, block: BlockId) => onChain(b, toggled(chains[b], block));
   const cells = (blocks: typeof BLOCKS) =>
@@ -193,7 +194,8 @@ export function ChainView(props: Props) {
             El botón de cada bloque lo prende o lo apaga.
           </p>
           <p>
-            La salida es común a las dos ramas: al tocarla se elige el pasa banda de A y B.
+            Después del ADC viene la etapa digital (pasa bajos digital y umbral) y al final la
+            salida: el dispositivo que usa la señal de la rama que se ve en el monitor.
           </p>
         </Help>
       </div>
@@ -241,8 +243,8 @@ export function ChainView(props: Props) {
         {cells(DIGITAL_BLOCKS)}
       </div>
 
-      {/* La salida, común a las dos ramas: termina la cadena; al tocarla se abre
-          su panel con el pasa banda. */}
+      {/* La salida, común a las dos ramas: el dispositivo que usa la señal de
+          la rama que se ve en el monitor. Al tocarla se abre su panel. */}
       <div className="ch-grid">
         <Arrow />
         <Arrow />
@@ -251,7 +253,7 @@ export function ChainView(props: Props) {
         <Cell
           className="ch-out"
           label="Salida"
-          detail={`${outputName(chains)} · ${outputRange(chains)}`}
+          detail={`${DEVICES.find((d) => d.id === output.device)?.label} · rama ${branch.toUpperCase()}`}
           on
           selected={selection === 'output'}
           onOpen={() => onSelect('output')}

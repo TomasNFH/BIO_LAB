@@ -16,7 +16,9 @@ import { Help, Popover } from './components/Help';
 import { NoisePanel } from './components/NoisePanel';
 import { NotchPanel } from './components/NotchPanel';
 import { DigitalLpPanel, ThresholdPanel } from './components/DigitalPanel';
+import { bandOf, withBand } from './components/bands';
 import { OutputPanel } from './components/OutputPanel';
+import { DEFAULT_OUTPUT, type OutputSettings } from './output';
 import { PresetPanel } from './components/PresetPanel';
 import { SourcePanel } from './components/SourcePanel';
 import type { LabSettings } from './lab';
@@ -82,6 +84,7 @@ export function App() {
   const setNoise = (n: NoiseSettings) => setNoises((all) => ({ ...all, [source]: n }));
   const [focusNoise, setFocusNoise] = useState<NoiseId | null>(null);
   const [chains, setChains] = useState<Record<Branch, ChainSettings>>(DEFAULT_BRANCHES);
+  const [output, setOutput] = useState<OutputSettings>(DEFAULT_OUTPUT);
   // La rama que se edita en los paneles y se muestra en las vistas.
   const [branch, setBranch] = useState<Branch>('a');
   // El bloque de la cadena cuyo panel está abierto (uno por vez).
@@ -134,7 +137,7 @@ export function App() {
   };
 
   // El ajuste completo, para guardarlo, y cómo cargar uno.
-  const current: LabSettings = { source, ecg, eog, emg, noises, chains };
+  const current: LabSettings = { source, ecg, eog, emg, noises, chains, output };
   const applyLab = (s: LabSettings) => {
     changeSource(s.source);
     setEcg(s.ecg);
@@ -142,6 +145,7 @@ export function App() {
     setEmg(s.emg);
     setNoises(s.noises);
     setChains(s.chains);
+    setOutput(s.output);
   };
   // Al abrir un bloque, si su panel quedó abajo de la ventana, se lleva a la
   // vista (la columna de las vistas queda fija, así que no se pierde nada).
@@ -386,6 +390,7 @@ export function App() {
             recording={recording}
             noise={noise}
             onNoise={setNoise}
+            output={output}
           />
 
           <div ref={panelRef} className="ch-panel">
@@ -442,9 +447,9 @@ export function App() {
               />
             )}
 
-            {block === 'hp' && <FilterPanel kind="hp" settings={chain.hp} onChange={(hp) => editChain({ hp })} />}
+            {block === 'hp' && <FilterPanel kind="hp" settings={chain.hp} onChange={(hp) => editChain({ hp })} chain={chain} band={bandOf(chain)} onBand={(i) => setChain(branch, withBand(chain, i))} />}
 
-            {block === 'lp' && <FilterPanel kind="lp" settings={chain.lp} onChange={(lp) => editChain({ lp })} />}
+            {block === 'lp' && <FilterPanel kind="lp" settings={chain.lp} onChange={(lp) => editChain({ lp })} chain={chain} band={bandOf(chain)} onBand={(i) => setChain(branch, withBand(chain, i))} />}
 
             {block === 'notch' && <NotchPanel settings={chain.notch} onChange={(notch) => editChain({ notch })} />}
 
@@ -461,7 +466,18 @@ export function App() {
               />
             )}
 
-            {selection === 'output' && <OutputPanel chains={chains} onChain={setChain} />}
+            {selection === 'output' && (
+              <OutputPanel
+                engine={eng}
+                branch={branch}
+                chain={chain}
+                onChain={(s) => setChain(branch, s)}
+                source={source}
+                ecgBpm={ecg.bpm}
+                output={output}
+                onOutput={setOutput}
+              />
+            )}
 
             {block === 'adc' && (
               <AdcPanel engine={eng} branch={branch} chain={chain} onChange={(adc) => editChain({ adc })} />

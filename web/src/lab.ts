@@ -6,9 +6,11 @@ import { DEFAULT_EMG, type EmgSettings } from './engine/emg';
 import { DEFAULT_EOG, type EogSettings } from './engine/eog';
 import { DEFAULT_HP, DEFAULT_LP } from './engine/filters';
 import { DEFAULT_NOISE, DEFAULT_NOISE_EMG, DEFAULT_NOISE_EOG, DEFAULT_NOISE_REC, type NoiseSettings } from './engine/noise';
+import { DEFAULT_OUTPUT, DEVICES, type OutputDevice, type OutputSettings } from './output';
 
 // Todo lo que define un experimento: la fuente, su señal, los ruidos de
-// cada fuente y las dos cadenas. Las vistas no son parte del ajuste.
+// cada fuente, las dos cadenas y el dispositivo de salida. Las vistas no son
+// parte del ajuste.
 export type LabSettings = {
   source: SourceKind;
   ecg: EcgSettings;
@@ -16,6 +18,7 @@ export type LabSettings = {
   emg: EmgSettings;
   noises: Record<SourceKind, NoiseSettings>;
   chains: Record<Branch, ChainSettings>;
+  output: OutputSettings;
 };
 
 export type Preset = {
@@ -31,6 +34,7 @@ export const DEFAULT_LAB: LabSettings = {
   emg: DEFAULT_EMG,
   noises: { ecg: DEFAULT_NOISE, eog: DEFAULT_NOISE_EOG, emg: DEFAULT_NOISE_EMG, rec: DEFAULT_NOISE_REC },
   chains: DEFAULT_BRANCHES,
+  output: DEFAULT_OUTPUT,
 };
 
 // Mezcla en profundidad: lo que falta en `value` se toma de `base`. Así un
@@ -46,15 +50,16 @@ function merge<T>(base: T, value: unknown): T {
   return out as T;
 }
 
-// Los ajustes guardados antes de la etapa digital no la traen: `merge` la
-// completa con la de por defecto. El modo del umbral, además, tiene que ser
-// uno de los conocidos.
+// Los ajustes guardados antes de la etapa digital y la salida no las traen:
+// `merge` las completa con las de por defecto. El modo del umbral y el
+// dispositivo, además, tienen que ser de los conocidos.
 export function normalize(raw: unknown): LabSettings {
   const s = merge(DEFAULT_LAB, raw);
   for (const b of BRANCHES) {
     const thr = s.chains[b].dsp.thr;
     if (thr.mode !== 'one' && thr.mode !== 'two') thr.mode = DEFAULT_DIGITAL.thr.mode;
   }
+  if (!DEVICES.some((d) => d.id === s.output.device)) s.output.device = DEFAULT_OUTPUT.device;
   return s;
 }
 
@@ -68,6 +73,7 @@ function lab(patch: {
   noise?: (n: NoiseSettings) => void;
   a?: (c: ChainSettings) => void;
   b?: (c: ChainSettings) => void;
+  output?: OutputDevice;
 }): LabSettings {
   const s = structuredClone(DEFAULT_LAB);
   if (patch.source) s.source = patch.source;
@@ -79,6 +85,7 @@ function lab(patch: {
   s.chains = { a: structuredClone(DEFAULT_CHAIN), b: structuredClone(DEFAULT_CHAIN) };
   patch.a?.(s.chains.a);
   patch.b?.(s.chains.b);
+  if (patch.output) s.output = { device: patch.output };
   return s;
 }
 
