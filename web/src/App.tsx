@@ -27,6 +27,7 @@ import type { Recording } from './engine/recording';
 import { DEFAULT_MONITOR, MonitorView, type MonitorOptions } from './views/MonitorView';
 import { BodeView } from './views/BodeView';
 import { QrsView } from './views/QrsView';
+import { Theory } from './views/Theory';
 import { DEFAULT_SPECTRUM, SpectrumView, type SpectrumOptions } from './views/SpectrumView';
 import { DEFAULT_STAGES, StagesView, type StagesOptions } from './views/StagesView';
 
@@ -53,6 +54,13 @@ const getEngine = () => {
 const SPEEDS = [12.5, 25, 50];
 const GAINS = [5, 10, 20, 50];
 const STAGE_RANGES = [1, 2, 5, 20];
+
+// Pestañas del encabezado: el laboratorio y la teoría.
+type Page = 'lab' | 'theory';
+const PAGES: { id: Page; label: string }[] = [
+  { id: 'lab', label: 'Laboratorio' },
+  { id: 'theory', label: 'Fundamentos' },
+];
 
 type ViewTab = 'spectrum' | 'bode' | 'stages' | 'qrs';
 // Explicaciones de cada vista, en el «?» de su panel.
@@ -92,6 +100,7 @@ export function App() {
   const [branch, setBranch] = useState<Branch>('a');
   // El bloque de la cadena cuyo panel está abierto (uno por vez).
   const [selection, setSelection] = useState<Selection>('source');
+  const [page, setPage] = useState<Page>('lab');
   const [view, setView] = useState<ViewTab>('spectrum');
   const [stages, setStages] = useState<StagesOptions>(DEFAULT_STAGES);
   const [monitor, setMonitor] = useState<MonitorOptions>(() => monitorFor(START.source, DEFAULT_MONITOR));
@@ -184,10 +193,26 @@ export function App() {
         <h1 className="wordmark" aria-label="Bio Lab">
           <span aria-hidden="true">bi<span className="dot-o">o</span> lab</span>
         </h1>
-        {source === 'eog' && eog.mode === 'interactive' && <Eyes engine={eng} amplitude={eog.amplitude} />}
+        {page === 'lab' && source === 'eog' && eog.mode === 'interactive' && <Eyes engine={eng} amplitude={eog.amplitude} />}
+        <nav className="tabs page-tabs" role="tablist" aria-label="Secciones">
+          {PAGES.map((p) => (
+            <button
+              key={p.id}
+              role="tab"
+              aria-selected={page === p.id}
+              className={`tab ${page === p.id ? 'on' : ''}`}
+              onClick={() => setPage(p.id)}
+            >
+              {p.label}
+            </button>
+          ))}
+        </nav>
       </header>
 
-      <div className="layout">
+      {page === 'theory' && <Theory />}
+
+      {/* El laboratorio queda montado (oculto) para no perder su estado. */}
+      <div className="layout" hidden={page !== 'lab'}>
         <div className="views-col">
           <section className="panel monitor-panel">
             {/* Título sobre las métricas; ajustes y botones centrados sobre el trazo. */}
@@ -482,7 +507,7 @@ export function App() {
       </div>
 
       {/* Contador de pulso o autito: siempre a la vista, abajo y al centro. */}
-      <OutputDock
+      {page === 'lab' && <OutputDock
         engine={eng}
         branch={branch}
         chain={chain}
@@ -491,7 +516,7 @@ export function App() {
         output={output}
         onOutput={setOutput}
         onOpenSettings={() => select('output')}
-      />
+      />}
     </div>
   );
 }

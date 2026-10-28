@@ -70,11 +70,17 @@ body { margin: 0; border-top: 6px solid var(--terra); } /* franja del marco retr
 .eyes .eye { transform-box: fill-box; transform-origin: center; transition: transform 0.06s; }
 .eyes.blink .eye { transform: scaleY(0.12); }
 @media (max-width: 560px) {
-  .eyes { left: auto; right: 0; transform: translateY(-50%); }
+  .eyes { left: auto; right: 0; top: 20px; transform: translateY(-50%); }
 }
 .header .logo { color: var(--espresso); flex: none; }
 .header .logo .logo-beat { stroke: var(--terra); }
 .header-btn { margin-left: auto; }
+/* Pestañas del encabezado (Laboratorio / Fundamentos), a la derecha. */
+.page-tabs { margin-left: auto; }
+@media (max-width: 560px) {
+  .page-tabs { margin-left: 0; width: 100%; }
+}
+.layout[hidden] { display: none; }
 .header h1 { margin: 0; font-family: var(--font-display); font-weight: 800; font-size: 2rem; line-height: 1; letter-spacing: -0.04em; }
 
 /* Marca «bio lab»: la «o» lleva un punto turquesa en el hueco, como un
@@ -496,3 +502,107 @@ input.text.short { flex: 0 0 90px; margin: 0 4px; }
   .monitor-body { grid-template-columns: minmax(0, 1fr); }
   .monitor-body .metrics-v { order: 2; width: 100%; }
 }
+
+/* ---------- Fundamentos ---------- */
+/* Índice a la izquierda (fijo al desplazar) y el texto a la derecha. */
+.theory-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: start; }
+@media (min-width: 1000px) {
+  .theory-layout { grid-template-columns: 220px minmax(0, 1fr); }
+  .th-toc { position: sticky; top: 12px; }
+}
+html { scroll-behavior: smooth; }
+.th-section h3, .th-section h4 { scroll-margin-top: 16px; }
+.th-section { scroll-margin-top: 16px; }
+.th-toc ol { list-style: none; margin: 0; padding: 0; }
+.th-toc > ol > li { margin-bottom: 10px; }
+.th-toc > ol > li > a { font-family: var(--font-display); font-weight: 600; }
+.th-toc ol ol { padding-left: 12px; margin-top: 4px; border-left: 2px solid var(--border); }
+.th-toc ol ol li { margin: 3px 0; font-size: 0.86rem; }
+.th-toc a { color: var(--text); text-decoration: none; }
+.th-toc a:hover { color: var(--accent); }
+@media (max-width: 999px) {
+  .th-toc ol ol { display: none; }
+  .th-toc > ol { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+  .th-toc > ol > li { margin: 0; }
+}
+
+.th-section { line-height: 1.6; }
+.th-section p, .th-section li, .th-section dd { max-width: 75ch; }
+.th-section h3 { margin: 26px 0 8px; font-family: var(--font-display); font-weight: 700; font-size: 1.15rem; }
+.th-section h4 { margin: 20px 0 6px; font-family: var(--font-display); font-weight: 600; font-size: 1rem; color: var(--espresso); }
+.th-section h2 + p { margin-top: 0; }
+
+/* Fórmulas: serif matemática; las fracciones se apilan con una raya. */
+.eq, .m { font-family: 'Cambria Math', 'STIX Two Math', 'Latin Modern Math', 'Times New Roman', serif; font-size: 1.08em; }
+.eq { margin: 10px 0; padding: 8px 12px; text-align: center; overflow-x: auto; line-height: 2.4; }
+.m { white-space: nowrap; }
+.eq sub, .m sub, .eq sup, .m sup { font-size: 0.7em; line-height: 0; }
+.frac { display: inline-flex; flex-direction: column; vertical-align: middle; text-align: center; line-height: 1.3; margin: 0 2px; }
+.frac > span { padding: 0 3px; }
+.frac > span:last-child { border-top: 1px solid currentColor; }
+.sqrt { white-space: nowrap; }
+.sqrt-in { border-top: 1px solid currentColor; padding: 0 2px; }
+
+.derive { margin: 12px 0; padding: 10px 14px 4px; border-left: 3px solid var(--turq); background: var(--panel-sunk); border-radius: 0 8px 8px 0; }
+.derive-title { font-family: var(--font-display); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--turq-ink); }
+.derive ol { margin: 6px 0; padding-left: 20px; }
+.derive li { margin-bottom: 6px; }
+.derive .eq { margin: 4px 0; padding: 4px 0; }
+.th-note { margin: 12px 0; padding: 8px 12px; border: 1px dashed var(--terra-ink); border-radius: 8px; font-size: 0.92rem; max-width: 75ch; }
+.th-note strong { color: var(--terra-ink); }
+.th-example { padding: 8px 12px; border-radius: 8px; background: var(--paper); border: 1px solid var(--border); }
+.th-small { font-size: 0.82rem; color: var(--muted); }
+
+/* Esquema al lado del texto en pantallas anchas. */
+.th-split { display: grid; gap: 4px 16px; align-items: center; }
+@media (min-width: 700px) {
+  .th-split { grid-template-columns: 290px minmax(0, 1fr); }
+}
+.th-split > .derive { margin: 0; }
+.schematic.th-sch { max-width: 290px; margin: 4px 0; }
+.schematic.th-sch.small { max-width: 220px; }
+
+.th-defs dt { font-weight: 700; margin-top: 8px; }
+.th-defs dd { margin: 2px 0 0 16px; }
+.th-rules li { margin-bottom: 6px; max-width: 75ch; }
+
+.th-table-wrap { overflow-x: auto; margin: 10px 0; }
+.th-table { border-collapse: collapse; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+.th-table th, .th-table td { padding: 5px 12px; border-bottom: 1px solid var(--border); text-align: left; }
+.th-table th { font-family: var(--font-display); font-weight: 600; border-bottom: 2px solid var(--espresso); }
+
+/* Gráficos calculados (Bode, escalón, curva del diodo). */
+.th-plot { display: block; width: 100%; max-width: 560px; margin: 8px 0; background: var(--paper); border-radius: 6px; }
+.th-plot .grid { stroke: var(--c-grid-strong); stroke-width: 0.6; fill: none; }
+.th-plot .frame { fill: none; stroke: var(--border-strong); }
+.th-plot .tick { font-size: 10.5px; fill: var(--muted); font-family: var(--font-body); }
+.th-plot .axis { font-size: 11.5px; fill: var(--text); font-family: var(--font-body); }
+.th-plot .mark { stroke: var(--terra-ink); stroke-width: 0.8; stroke-dasharray: 2 3; fill: none; }
+.th-plot .mark-label { fill: var(--terra-ink); }
+.th-plot .curve { fill: none; stroke-width: 2.2; stroke-linejoin: round; }
+.th-plot .asym { fill: none; stroke-width: 1.2; stroke-dasharray: 5 4; }
+.th-plot .lp { stroke: var(--c-lp); fill: var(--c-lp); }
+.th-plot .hp { stroke: var(--c-hp); fill: var(--c-hp); }
+.th-plot .curve.lp, .th-plot .curve.hp, .th-plot .asym.lp, .th-plot .asym.hp { fill: none; }
+.th-plot .diode { stroke: var(--accent); }
+.th-plot .ideal { stroke: var(--muted); }
+.th-plot .drop { stroke: var(--terra-ink); }
+.swatch.diode { background: var(--accent); }
+.swatch.ideal.dashed { color: var(--muted); }
+.swatch.drop.dashed { color: var(--terra-ink); }
+.th-legend { margin: 0 0 8px; }
+
+/* Calculadoras interactivas. */
+.th-calc { margin: 16px 0 4px; padding: 12px 14px; border: 2px solid var(--espresso); border-radius: 10px; background: var(--panel-sunk); box-shadow: var(--shadow-hard-sm); }
+.th-calc-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-family: var(--font-display); font-weight: 700; margin-bottom: 8px; }
+.th-presets { display: inline-flex; gap: 6px; margin-left: auto; }
+.th-presets button { padding: 3px 10px; font-size: 0.8rem; }
+.th-calc-inputs { display: grid; gap: 6px 16px; }
+@media (min-width: 700px) {
+  .th-calc-inputs { grid-template-columns: 1fr 1fr; }
+}
+.th-slider { display: grid; grid-template-columns: 76px minmax(0, 1fr) 120px; align-items: center; gap: 8px; font-size: 0.88rem; }
+.th-slider input { width: 100%; accent-color: var(--turq-ink); }
+.th-slider output { font-variant-numeric: tabular-nums; text-align: right; }
+.th-readouts { margin: 10px 0 6px; }
+.th-readouts div { background: var(--panel); }

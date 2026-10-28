@@ -4,7 +4,7 @@ import { farads, ohms } from '../components/units';
 import { Dot, OpAmp, Res } from './AmpSchematic';
 
 // Capacitor: dos placas entre dos puntos (horizontal o vertical).
-function Cap({ x1, y1, x2, y2 }: { x1: number; y1: number; x2: number; y2: number }) {
+export function Cap({ x1, y1, x2, y2 }: { x1: number; y1: number; x2: number; y2: number }) {
   if (y1 === y2) {
     const m = (x1 + x2) / 2;
     return <path d={`M${x1} ${y1}H${m - 4}M${m - 4} ${y1 - 11}v22M${m + 4} ${y1 - 11}v22M${m + 4} ${y1}H${x2}`} />;
@@ -13,7 +13,7 @@ function Cap({ x1, y1, x2, y2 }: { x1: number; y1: number; x2: number; y2: numbe
   return <path d={`M${x1} ${y1}V${m - 4}M${x1 - 11} ${m - 4}h22M${x1 - 11} ${m + 4}h22M${x1} ${m + 4}V${y2}`} />;
 }
 
-const Ground = ({ x, y }: { x: number; y: number }) => (
+export const Ground = ({ x, y }: { x: number; y: number }) => (
   <path d={`M${x - 12} ${y}h24M${x - 8} ${y + 5}h16M${x - 3} ${y + 10}h6`} />
 );
 
