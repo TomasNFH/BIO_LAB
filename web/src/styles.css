@@ -606,3 +606,17 @@ html { scroll-behavior: smooth; }
 .th-slider output { font-variant-numeric: tabular-nums; text-align: right; }
 .th-readouts { margin: 10px 0 6px; }
 .th-readouts div { background: var(--panel); }
+
+/* Ejemplos de circuitos: tarjeta con esquema y cálculo. */
+.th-ex { margin: 14px 0; padding: 12px 14px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--paper); }
+.th-ex-title { font-family: var(--font-display); font-weight: 600; margin-bottom: 6px; }
+.th-ex-n { display: inline-block; margin-right: 6px; padding: 1px 8px; border-radius: 999px; background: var(--espresso); color: var(--cream-light); font-size: 0.78rem; }
+.th-ex.wide .th-split { grid-template-columns: minmax(0, 1fr); }
+.th-ex-body > p:first-child { margin-top: 0; }
+.th-steps { padding-left: 20px; margin: 6px 0; }
+.th-steps li { margin-bottom: 6px; }
+.th-steps .eq { margin: 4px 0; }
+.schematic.th-sch.wide { max-width: 470px; }
+.schematic.th-sch.narrow { max-width: 200px; }
+.schematic .sch-fill { fill: var(--espresso); stroke: none; }
+.schematic circle.sch-sym { fill: none; stroke: var(--espresso); stroke-width: 1.4; }
